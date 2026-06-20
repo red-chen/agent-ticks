@@ -1,0 +1,66 @@
+{
+  "name": "agent-ticks",
+  "productName": "Agent Ticks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local scheduler for Claude Code, Codex, and other coding agents",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "bin": {
+    "agent-ticks": "cli/agent-ticks.cjs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently -k \"vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "electron:preview": "cross-env VITE_DEV_SERVER_URL= electron .",
+    "cli": "node cli/agent-ticks.cjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^42.2.0",
+    "lucide-react": "^1.16.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "wait-on": "^9.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.7"
+  },
+  "build": {
+    "appId": "com.agentticks.app",
+    "productName": "Agent Ticks",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "lib/**/*",
+      "cli/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": null
+    }
+  }
+}
