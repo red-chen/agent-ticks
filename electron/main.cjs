@@ -66,7 +66,7 @@ function broadcastState() {
 function trayImage(activeCount) {
   const svg = `
     <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <rect x="5" y="5" width="22" height="22" rx="7" fill="${activeCount > 0 ? '#2f8f6f' : '#667085'}"/>
+      <rect x="5" y="5" width="22" height="22" rx="7" fill="${activeCount > 0 ? '#c76a1d' : '#667085'}"/>
       <path d="M11 17h5l-2 6 7-9h-5l2-6-7 9z" fill="white"/>
     </svg>`;
   const image = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
@@ -180,6 +180,12 @@ function registerIpc() {
   // File tree API
   ipcMain.handle('filetree:get', (_event, workingDirectory) => {
     return fileTree.getFileTree(workingDirectory);
+  });
+  ipcMain.handle('filetree:read', (_event, workingDirectory, filePath) => {
+    return fileTree.readWorkspaceFile(workingDirectory, filePath);
+  });
+  ipcMain.handle('filetree:write', (_event, workingDirectory, filePath, content) => {
+    return fileTree.writeWorkspaceFile(workingDirectory, filePath, content);
   });
 
   // 监听 PTY 输出并转发给前端

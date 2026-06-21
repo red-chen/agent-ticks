@@ -96,4 +96,6 @@ export interface AgentTicksApi {
 
   // File tree API
   getFileTree: (workingDirectory: string) => Promise<FileNode[]>;
+  readFile: (workingDirectory: string, filePath: string) => Promise<{ path: string; name: string; content: string }>;
+  writeFile: (workingDirectory: string, filePath: string, content: string) => Promise<{ path: string; name: string; content: string }>;
 }

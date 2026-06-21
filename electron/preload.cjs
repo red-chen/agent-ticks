@@ -43,4 +43,6 @@ contextBridge.exposeInMainWorld('agentTicks', {
 
   // File tree API
   getFileTree: (workingDirectory) => ipcRenderer.invoke('filetree:get', workingDirectory),
+  readFile: (workingDirectory, filePath) => ipcRenderer.invoke('filetree:read', workingDirectory, filePath),
+  writeFile: (workingDirectory, filePath, content) => ipcRenderer.invoke('filetree:write', workingDirectory, filePath, content),
 });

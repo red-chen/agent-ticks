@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { X, PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, FileText, Folder, FolderOpen, Plus, LayoutDashboard } from 'lucide-react';
+import { X, PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, FileText, Folder, FolderOpen, Plus, LayoutDashboard, Save } from 'lucide-react';
 import { Terminal } from 'xterm';
+import type { ITheme } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import type { ChatSession, FileNode } from '../types';
@@ -17,6 +18,21 @@ interface TerminalPanelProps {
   workspaceTitle?: string;
   workspaceContent?: ReactNode;
   tabbarActions?: ReactNode;
+  appName?: string;
+  appVersion?: string;
+}
+
+function readCssVar(name: string) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function terminalTheme(): ITheme {
+  return {
+    background: readCssVar('--terminal-bg'),
+    foreground: readCssVar('--terminal-text'),
+    cursor: readCssVar('--text-accent'),
+    selectionBackground: readCssVar('--bg-active'),
+  };
 }
 
 export function TerminalPanel({
@@ -31,10 +47,17 @@ export function TerminalPanel({
   workspaceTitle = 'Workspace',
   workspaceContent,
   tabbarActions,
+  appName = 'AgentTicks',
+  appVersion = '0.1.0',
 }: TerminalPanelProps) {
   const [showFileTree, setShowFileTree] = useState(true);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [workingDirectory, setWorkingDirectory] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<{ path: string; name: string; content: string } | null>(null);
+  const [editorContent, setEditorContent] = useState('');
+  const [editorError, setEditorError] = useState('');
+  const [isEditorLoading, setIsEditorLoading] = useState(false);
+  const [isSavingFile, setIsSavingFile] = useState(false);
 
   console.log('[TerminalPanel] Render - sessions:', sessions.length, sessions.map(s => ({ id: s.id, name: s.agentName })));
   console.log('[TerminalPanel] Render - activeSessionId:', activeSessionId);
@@ -58,11 +81,7 @@ export function TerminalPanel({
         cursorBlink: true,
         fontSize: 13,
         fontFamily: "'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace",
-        theme: {
-          background: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim(),
-          foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim(),
-          cursor: getComputedStyle(document.documentElement).getPropertyValue('--text-accent').trim(),
-        },
+        theme: terminalTheme(),
         scrollback: 10000,
       });
 
@@ -103,6 +122,25 @@ export function TerminalPanel({
       }
     }
   }, [sessions]);
+
+  useEffect(() => {
+    const applyTerminalTheme = () => {
+      const nextTheme = terminalTheme();
+      for (const { term } of terminalsRef.current.values()) {
+        term.options.theme = { ...nextTheme };
+      }
+    };
+
+    applyTerminalTheme();
+
+    const observer = new MutationObserver(applyTerminalTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'style'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // 监听所有会话的 PTY 输出
   useEffect(() => {
@@ -174,7 +212,7 @@ export function TerminalPanel({
         }
       }
     }, 100);
-  }, [showFileTree, activeSessionId]);
+  }, [showFileTree, activeSessionId, selectedFile?.path]);
 
   // 加载真实的文件树
   useEffect(() => {
@@ -190,6 +228,8 @@ export function TerminalPanel({
         if (!dir) {
           setWorkingDirectory('');
           setFileTree([]);
+          setSelectedFile(null);
+          setEditorContent('');
           return;
         }
 
@@ -220,13 +260,65 @@ export function TerminalPanel({
     setFileTree(updateNode(fileTree));
   };
 
+  const openFile = async (node: FileNode) => {
+    if (!workingDirectory || node.type !== 'file') return;
+
+    setIsEditorLoading(true);
+    setEditorError('');
+    try {
+      const file = await window.agentTicks?.readFile(workingDirectory, node.path);
+      if (!file) throw new Error('File API is unavailable');
+      setSelectedFile(file);
+      setEditorContent(file.content);
+    } catch (error) {
+      setSelectedFile(null);
+      setEditorContent('');
+      setEditorError((error as Error).message || 'Failed to open file');
+    } finally {
+      setIsEditorLoading(false);
+    }
+  };
+
+  const saveFile = async () => {
+    if (!workingDirectory || !selectedFile) return;
+
+    setIsSavingFile(true);
+    setEditorError('');
+    try {
+      const file = await window.agentTicks?.writeFile(workingDirectory, selectedFile.path, editorContent);
+      if (!file) throw new Error('File API is unavailable');
+      setSelectedFile(file);
+      setEditorContent(file.content);
+    } catch (error) {
+      setEditorError((error as Error).message || 'Failed to save file');
+    } finally {
+      setIsSavingFile(false);
+    }
+  };
+
+  const closeFile = () => {
+    setSelectedFile(null);
+    setEditorContent('');
+    setEditorError('');
+  };
+
+  const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      if (selectedFile && editorContent !== selectedFile.content && !isSavingFile) {
+        saveFile();
+      }
+    }
+  };
+
   const renderFileTree = (nodes: FileNode[], depth = 0) => {
     return nodes.map((node) => (
       <div key={node.path}>
         <div
-          className="file-tree-item"
+          className={`file-tree-item ${selectedFile?.path === node.path ? 'active' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => node.type === 'directory' && toggleDirectory(node)}
+          onClick={() => (node.type === 'directory' ? toggleDirectory(node) : openFile(node))}
+          title={node.path}
         >
           {node.type === 'directory' ? (
             <>
@@ -250,10 +342,18 @@ export function TerminalPanel({
 
   if (sessions.length === 0 && !workspaceContent) return null;
 
+  const hasOpenEditor = Boolean(selectedFile);
+  const rightPanelVisible = activeSessionId !== null && showFileTree;
+  const leftPaneMode = rightPanelVisible ? (hasOpenEditor ? 'editor-split' : 'split') : 'full';
+  const hasFileChanges = selectedFile ? editorContent !== selectedFile.content : false;
+
   return (
     <div className="chat-terminal-view">
       {!isFullScreen && (
-        <div className="chat-terminal-header" />
+        <div className="chat-terminal-header">
+          <div className="chat-terminal-title">{appName}</div>
+          <div className="chat-terminal-version">v{appVersion}</div>
+        </div>
       )}
 
       <div className="chat-terminal-tabbar">
@@ -299,7 +399,7 @@ export function TerminalPanel({
             }}
             title="New chat session"
           >
-            <Plus size={14} />
+            <Plus size={12} />
           </button>
         </div>
         <div className="chat-terminal-actions">
@@ -333,7 +433,7 @@ export function TerminalPanel({
         )}
 
         <div
-          className={`chat-terminal-left ${showFileTree ? 'split' : 'full'}`}
+          className={`chat-terminal-left ${leftPaneMode}`}
           style={{ display: activeSessionId === null ? 'none' : 'flex' }}
         >
           {sessions.map((session) => (
@@ -348,18 +448,55 @@ export function TerminalPanel({
           ))}
         </div>
 
-        {activeSessionId !== null && showFileTree && (
-          <div className="chat-terminal-right">
-            <div className="file-tree-header">
-              <span>{workingDirectory || 'Workspace'}</span>
+        {rightPanelVisible && (
+          <div className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : ''}`}>
+            <div className="file-explorer-pane">
+              <div className="file-tree-header">
+                <span>{workingDirectory || 'Workspace'}</span>
+              </div>
+              <div className="file-tree">
+                {fileTree.length > 0 ? (
+                  renderFileTree(fileTree)
+                ) : (
+                  <div className="file-tree-empty">No files to display</div>
+                )}
+                {isEditorLoading && <div className="file-tree-empty">Opening file...</div>}
+                {editorError && !selectedFile && <div className="file-tree-error">{editorError}</div>}
+              </div>
             </div>
-            <div className="file-tree">
-              {fileTree.length > 0 ? (
-                renderFileTree(fileTree)
-              ) : (
-                <div className="file-tree-empty">No files to display</div>
-              )}
-            </div>
+
+            {selectedFile && (
+              <div className="file-editor-pane">
+                <div className="file-editor-header">
+                  <div className="file-editor-title">
+                    <FileText size={14} />
+                    <span>{selectedFile.name}</span>
+                    {hasFileChanges && <em>Unsaved</em>}
+                  </div>
+                  <div className="file-editor-actions">
+                    <button
+                      className="file-editor-btn"
+                      onClick={saveFile}
+                      disabled={!hasFileChanges || isSavingFile}
+                      title="Save file (Command+S)"
+                    >
+                      <Save size={14} />
+                    </button>
+                    <button className="file-editor-btn" onClick={closeFile} title="Close file">
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+                {editorError && <div className="file-editor-error">{editorError}</div>}
+                <textarea
+                  className="file-editor"
+                  value={editorContent}
+                  spellCheck={false}
+                  onKeyDown={handleEditorKeyDown}
+                  onChange={(event) => setEditorContent(event.target.value)}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
