@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bot,
   CalendarClock,
+  Check,
   Languages,
   MessageCircle,
   Moon,
@@ -16,9 +17,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import type { Agent, AgentTask, AppState } from './types';
+import type { Agent, AgentTask, AppState, ChatSession } from './types';
 import { useTheme } from './components/ThemeProvider';
 import { useLanguage } from './components/LanguageProvider';
+import { TerminalPanel } from './components/TerminalPanel';
+import { AgentSelector } from './components/AgentSelector';
 import { nextLocale } from './lib/i18n';
 import type { ThemePreference } from './lib/theme';
 
@@ -145,6 +148,21 @@ function isScheduledTask(schedule: string) {
   return schedule.trim().toLowerCase() !== 'manual';
 }
 
+function emptyAgent(): Partial<Agent> {
+  return {
+    name: 'New Agent',
+    kind: 'codex',
+    description: '',
+    systemPrompt: '# Role\n\nYou are an AI coding agent running on a schedule.\n\n# Permissions\n\n- Read local workspace files\n- Write only inside the configured workspace',
+    fewShots: [],
+    permissions: ['workspace-write'],
+    skills: [],
+    mcps: [],
+    command: 'codex exec "$AGENT_TICKS_PROMPT"',
+    workingDirectory: '',
+  };
+}
+
 function emptyTask(agentId: string): Partial<AgentTask> {
   return {
     agentId,
@@ -163,10 +181,19 @@ export function App() {
   const [state, setState] = useState<AppState>(demoState);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [agentDraft, setAgentDraft] = useState<Partial<Agent> | null>(null);
+  const [isNewAgent, setIsNewAgent] = useState<boolean>(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [taskDraft, setTaskDraft] = useState<Partial<AgentTask> | null>(null);
   const [createTaskDraft, setCreateTaskDraft] = useState<Partial<AgentTask> | null>(null);
   const [deleteConfirmAgentId, setDeleteConfirmAgentId] = useState<string>('');
+  const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
+  const [originalAgent, setOriginalAgent] = useState<Partial<Agent> | null>(null);
+
+  // Chat state
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState<boolean>(false);
+  const [showAgentSelector, setShowAgentSelector] = useState<boolean>(false);
 
   const api = window.agentTicks;
 
@@ -194,13 +221,28 @@ export function App() {
   function openAgent(agent: Agent) {
     setSelectedAgentId(agent.id);
     setAgentDraft({ ...agent });
+    setOriginalAgent({ ...agent });
+    setIsNewAgent(false);
     setSelectedTaskId('');
     setTaskDraft(null);
+  }
+
+  function createNewAgent() {
+    setSelectedAgentId('');
+    const draft = emptyAgent();
+    setAgentDraft(draft);
+    setOriginalAgent(draft);
+    setIsNewAgent(true);
+    setSelectedTaskId('');
+    setTaskDraft(null);
+    setCreateTaskDraft(null);
   }
 
   function closeAgent() {
     setSelectedAgentId('');
     setAgentDraft(null);
+    setOriginalAgent(null);
+    setIsNewAgent(false);
     setSelectedTaskId('');
     setTaskDraft(null);
     setCreateTaskDraft(null);
@@ -216,21 +258,48 @@ export function App() {
     };
     if (api) {
       const saved = await api.saveAgent(nextDraft);
-      setState((current) => ({
-        ...current,
-        agents: current.agents.map((agent) => (agent.id === saved.id ? saved : agent)),
-      }));
+      setSelectedAgentId(saved.id);
       setAgentDraft(saved);
+      setOriginalAgent(saved);
+      setIsNewAgent(false);
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 2000);
     } else {
+      const now = new Date().toISOString();
+      const saved: Agent = isNewAgent
+        ? {
+          id: `agent-${Date.now()}`,
+          name: nextDraft.name || 'New Agent',
+          kind: nextDraft.kind || 'codex',
+          description: nextDraft.description || '',
+          systemPrompt: nextDraft.systemPrompt || '',
+          fewShots: nextDraft.fewShots || [],
+          permissions: nextDraft.permissions || [],
+          skills: nextDraft.skills || [],
+          mcps: nextDraft.mcps || [],
+          command: nextDraft.command || 'codex exec "$AGENT_TICKS_PROMPT"',
+          workingDirectory: nextDraft.workingDirectory || '',
+          createdAt: now,
+          updatedAt: now,
+        }
+        : {
+          ...(state.agents.find((agent) => agent.id === selectedAgentId) as Agent),
+          ...nextDraft,
+          updatedAt: now,
+        } as Agent;
+
       setState((current) => ({
         ...current,
-        agents: current.agents.map((agent) => (
-          agent.id === selectedAgentId
-            ? { ...agent, ...nextDraft, updatedAt: new Date().toISOString() }
-            : agent
-        )),
+        agents: isNewAgent
+          ? [...current.agents, saved]
+          : current.agents.map((agent) => (agent.id === selectedAgentId ? saved : agent)),
       }));
-      setAgentDraft(nextDraft);
+      setSelectedAgentId(saved.id);
+      setAgentDraft(saved);
+      setOriginalAgent(saved);
+      setIsNewAgent(false);
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 2000);
     }
   }
 
@@ -239,17 +308,20 @@ export function App() {
   }
 
   async function deleteAgent(agentId: string) {
-    if (api) await api.deleteAgent(agentId);
-    setState((current) => ({
-      ...current,
-      agents: current.agents.filter((agent) => agent.id !== agentId),
-    }));
+    if (api) {
+      await api.deleteAgent(agentId);
+    } else {
+      setState((current) => ({
+        ...current,
+        agents: current.agents.filter((agent) => agent.id !== agentId),
+      }));
+    }
     setDeleteConfirmAgentId('');
     if (selectedAgentId === agentId) closeAgent();
   }
 
   function newTask() {
-    if (!selectedAgentId) return;
+    if (!selectedAgentId && !isNewAgent) return;
     setCreateTaskDraft(emptyTask(selectedAgentId));
   }
 
@@ -268,12 +340,6 @@ export function App() {
     };
     if (api) {
       const saved = await api.saveTask(nextDraft);
-      setState((current) => ({
-        ...current,
-        tasks: current.tasks.some((task) => task.id === saved.id)
-          ? current.tasks.map((task) => (task.id === saved.id ? saved : task))
-          : [...current.tasks, saved],
-      }));
       setSelectedTaskId(saved.id);
       setTaskDraft(null);
       return;
@@ -321,10 +387,6 @@ export function App() {
     };
     if (api) {
       const saved = await api.saveTask(nextDraft);
-      setState((current) => ({
-        ...current,
-        tasks: [...current.tasks, saved],
-      }));
       setSelectedTaskId(saved.id);
       setTaskDraft(saved);
       setCreateTaskDraft(null);
@@ -357,20 +419,27 @@ export function App() {
 
   async function toggleTaskEnabled(task: AgentTask) {
     const nextTask = { ...task, enabled: !task.enabled, updatedAt: new Date().toISOString() };
-    if (api) await api.saveTask(nextTask);
-    setState((current) => ({
-      ...current,
-      tasks: current.tasks.map((item) => (item.id === task.id ? nextTask : item)),
-    }));
-    if (selectedTaskId === task.id) setTaskDraft(nextTask);
+    if (api) {
+      await api.saveTask(nextTask);
+      if (selectedTaskId === task.id) setTaskDraft(nextTask);
+    } else {
+      setState((current) => ({
+        ...current,
+        tasks: current.tasks.map((item) => (item.id === task.id ? nextTask : item)),
+      }));
+      if (selectedTaskId === task.id) setTaskDraft(nextTask);
+    }
   }
 
   async function deleteTask(taskId: string) {
-    if (api) await api.deleteTask(taskId);
-    setState((current) => ({
-      ...current,
-      tasks: current.tasks.filter((task) => task.id !== taskId),
-    }));
+    if (api) {
+      await api.deleteTask(taskId);
+    } else {
+      setState((current) => ({
+        ...current,
+        tasks: current.tasks.filter((task) => task.id !== taskId),
+      }));
+    }
     if (selectedTaskId === taskId) {
       setSelectedTaskId('');
       setTaskDraft(null);
@@ -390,9 +459,119 @@ export function App() {
     }
   }
 
+  async function startChat(agentId: string) {
+    console.log('[App] startChat called with agentId:', agentId);
+    if (!api) {
+      console.error('[App] No API available');
+      alert('Chat requires the Electron app');
+      return;
+    }
+    try {
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) {
+        throw new Error('Agent not found');
+      }
+      console.log('[App] Creating session for agent:', agent.name);
+      const session = await api.createSession(agentId, agent.name);
+      console.log('[App] Session created:', session);
+      setChatSessions((prev) => {
+        const updated = [...prev, session];
+        console.log('[App] Updated chatSessions:', updated);
+        return updated;
+      });
+      setActiveSessionId(session.id);
+      setShowChat(true);
+      setShowAgentSelector(false);
+      console.log('[App] startChat completed successfully');
+    } catch (error) {
+      console.error('[App] Failed to start chat:', error);
+      alert(`Failed to start chat: ${(error as Error).message || error}`);
+    }
+  }
+
+  function closeChat() {
+    if (!api) {
+      setShowChat(false);
+      return;
+    }
+    // 终止所有 PTY 进程并删除会话
+    chatSessions.forEach((session) => {
+      api.stopSession(session.id).catch(() => {});
+      api.deleteSession(session.id).catch(() => {});
+    });
+    setChatSessions([]);
+    setActiveSessionId(null);
+    setShowChat(false);
+  }
+
+  function closeSession(sessionId: string) {
+    console.log('[App] closeSession called with sessionId:', sessionId);
+    if (!api) {
+      console.error('[App] No API available for closeSession');
+      return;
+    }
+    console.log('[App] Stopping and deleting session...');
+    api.stopSession(sessionId).catch((err) => {
+      console.warn('[App] Failed to stop session:', err);
+    });
+    api.deleteSession(sessionId).catch((err) => {
+      console.warn('[App] Failed to delete session:', err);
+    });
+
+    setChatSessions((prev) => {
+      console.log('[App] Current sessions before removal:', prev);
+      const remaining = prev.filter((s) => s.id !== sessionId);
+      console.log('[App] Remaining sessions after removal:', remaining);
+
+      // 如果关闭的是当前活跃会话，切换到其他会话
+      if (activeSessionId === sessionId) {
+        if (remaining.length > 0) {
+          console.log('[App] Switching to first remaining session:', remaining[0].id);
+          setActiveSessionId(remaining[0].id);
+        } else {
+          console.log('[App] No remaining sessions, closing chat panel');
+          setShowChat(false);
+          setActiveSessionId(null);
+        }
+      }
+
+      return remaining;
+    });
+    console.log('[App] closeSession completed');
+  }
+
+  const activeSession = chatSessions.find((s) => s.id === activeSessionId) || null;
+
   const deleteConfirmAgent = state.agents.find((agent) => agent.id === deleteConfirmAgentId) || null;
-  const selectedAgentTasks = state.tasks.filter((task) => task.agentId === selectedAgentId);
+  const selectedAgentTasks = selectedAgentId
+    ? state.tasks.filter((task) => task.agentId === selectedAgentId)
+    : [];
   const formatTime = (value: string | null) => (value ? new Date(value).toLocaleString() : t('task.never'));
+
+  function hasAgentChanged() {
+    if (!agentDraft || !originalAgent) return false;
+    return JSON.stringify({
+      name: agentDraft.name,
+      kind: agentDraft.kind,
+      description: agentDraft.description,
+      systemPrompt: agentDraft.systemPrompt,
+      skills: splitLines(lines(agentDraft.skills)),
+      mcps: splitLines(lines(agentDraft.mcps)),
+      permissions: splitLines(lines(agentDraft.permissions)),
+      command: agentDraft.command,
+      workingDirectory: agentDraft.workingDirectory,
+    }) !== JSON.stringify({
+      name: originalAgent.name,
+      kind: originalAgent.kind,
+      description: originalAgent.description,
+      systemPrompt: originalAgent.systemPrompt,
+      skills: splitLines(lines(originalAgent.skills)),
+      mcps: splitLines(lines(originalAgent.mcps)),
+      permissions: splitLines(lines(originalAgent.permissions)),
+      command: originalAgent.command,
+      workingDirectory: originalAgent.workingDirectory,
+    });
+  }
 
   return (
     <div className="app-layout">
@@ -450,10 +629,16 @@ export function App() {
                   </div>
                 </div>
                 <div className="agent-detail-actions">
-                  <button className="agent-detail-icon danger" title={t('agent.delete')} onClick={() => requestDeleteAgent(selectedAgentId)}>
-                    <Trash2 size={15} />
-                  </button>
-                  <button className="agent-detail-save" onClick={saveAgent}>
+                  {!isNewAgent && (
+                    <button className="agent-detail-icon danger" title={t('agent.delete')} onClick={() => requestDeleteAgent(selectedAgentId)}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                  <button
+                    className="agent-detail-save"
+                    onClick={saveAgent}
+                    disabled={!hasAgentChanged()}
+                  >
                     <Save size={14} />
                     {t('agent.save')}
                   </button>
@@ -481,9 +666,14 @@ export function App() {
                 <aside className="agent-tasks-panel">
                   <div className="detail-panel-head">
                     <span><CalendarClock size={15} /> {t('task.scheduledTasks')}</span>
-                    <button title={t('sidebar.newTask')} onClick={newTask}><Plus size={15} /></button>
+                    {!isNewAgent && (
+                      <button title={t('sidebar.newTask')} onClick={newTask}><Plus size={15} /></button>
+                    )}
                   </div>
-                  <div className="scheduled-task-list">
+                  {isNewAgent ? (
+                    <p className="empty">{t('agent.saveBeforeAddingTasks')}</p>
+                  ) : (
+                    <div className="scheduled-task-list">
                     {selectedAgentTasks.map((task) => (
                       <article
                         className={`scheduled-task-item ${task.id === selectedTaskId ? 'active' : ''}`}
@@ -519,11 +709,20 @@ export function App() {
                       <p className="empty">{t('sidebar.noTasks')}</p>
                     )}
                   </div>
+                  )}
                 </aside>
               </div>
             </section>
           ) : (
-            <div className="agents-grid">
+            <div className="agents-grid-wrapper">
+              <div className="agents-grid-header">
+                <h2>{t('sidebar.agents')}</h2>
+                <button className="new-agent-btn" onClick={createNewAgent}>
+                  <Plus size={15} />
+                  {t('sidebar.newAgent')}
+                </button>
+              </div>
+              <div className="agents-grid">
               {state.agents.map((agent) => (
                 <article className="agent-card" key={agent.id} onClick={() => openAgent(agent)}>
                   {(() => {
@@ -547,7 +746,13 @@ export function App() {
                               : t('agent.scheduledOff')}
                           </span>
                           <div className="agent-card-footer-actions">
-                            <button className="agent-chat-btn" onClick={(event) => event.stopPropagation()}>
+                            <button
+                              className="agent-chat-btn"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                startChat(agent.id);
+                              }}
+                            >
                               <MessageCircle size={13} />
                               {t('agent.chat')}
                             </button>
@@ -559,6 +764,7 @@ export function App() {
                 </article>
               ))}
               {!state.agents.length && <p className="empty">{t('sidebar.noAgents')}</p>}
+            </div>
             </div>
           )}
         </section>
@@ -627,6 +833,23 @@ export function App() {
             </div>
           </section>
         </div>
+      )}
+
+      {showSaveSuccess && (
+        <div className="toast-notification">
+          <Check size={16} />
+          <span>{t('agent.saveSuccess')}</span>
+        </div>
+      )}
+
+      {showChat && <TerminalPanel sessions={chatSessions} activeSessionId={activeSessionId} onSessionChange={setActiveSessionId} onSessionClose={closeSession} onNewSession={() => setShowAgentSelector(true)} onClose={closeChat} />}
+
+      {showAgentSelector && (
+        <AgentSelector
+          agents={state.agents}
+          onSelect={(agentId) => startChat(agentId)}
+          onClose={() => setShowAgentSelector(false)}
+        />
       )}
     </div>
   );

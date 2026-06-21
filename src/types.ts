@@ -51,6 +51,24 @@ export interface AppState {
   running: AgentRun[];
 }
 
+export interface ChatSession {
+  id: string;
+  agentId: string;
+  agentName: string;
+  title: string;
+  status: 'idle' | 'active';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileNode[];
+  expanded?: boolean;
+}
+
 export interface AgentTicksApi {
   getHome: () => Promise<string>;
   getState: () => Promise<AppState>;
@@ -61,4 +79,19 @@ export interface AgentTicksApi {
   runTask: (taskId: string) => Promise<AgentRun | null>;
   stopRun: (runId: string) => Promise<boolean>;
   onStateChange: (callback: (state: AppState) => void) => () => void;
+
+  // PTY Terminal APIs
+  listSessions: () => Promise<ChatSession[]>;
+  createSession: (agentId: string, title?: string) => Promise<ChatSession>;
+  getSession: (sessionId: string) => Promise<ChatSession | null>;
+  deleteSession: (sessionId: string) => Promise<boolean>;
+  startPty: (sessionId: string) => Promise<{ sessionId: string; cols: number; rows: number }>;
+  writeToPty: (sessionId: string, data: string) => Promise<boolean>;
+  resizePty: (sessionId: string, cols: number, rows: number) => Promise<boolean>;
+  stopSession: (sessionId: string) => Promise<boolean>;
+  onPtyData: (callback: (sessionId: string, data: string) => void) => () => void;
+  onPtyExit: (callback: (sessionId: string, exitCode: number, signal: number) => void) => () => void;
+
+  // File tree API
+  getFileTree: (workingDirectory: string) => Promise<FileNode[]>;
 }

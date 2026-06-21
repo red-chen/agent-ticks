@@ -3,6 +3,8 @@ const path = require('path');
 const store = require('../lib/store.cjs');
 const runner = require('../lib/runner.cjs');
 const { shouldRun } = require('../lib/cron.cjs');
+const ptySession = require('../lib/pty-session.cjs');
+const fileTree = require('../lib/file-tree.cjs');
 
 const APP_NAME = 'Agent Ticks';
 app.setName(APP_NAME);
@@ -142,6 +144,43 @@ function registerIpc() {
     const stopped = runner.stopRun(runId);
     broadcastState();
     return stopped;
+  });
+
+  // PTY Terminal session APIs
+  ipcMain.handle('pty:list', () => ptySession.listSessions());
+  ipcMain.handle('pty:create', (_event, agentId, title) => ptySession.createSession(agentId, title));
+  ipcMain.handle('pty:get', (_event, sessionId) => ptySession.readSession(sessionId));
+  ipcMain.handle('pty:delete', (_event, sessionId) => ptySession.deleteSession(sessionId));
+  ipcMain.handle('pty:start', (_event, sessionId) => {
+    const session = ptySession.startPtySession(sessionId);
+    return { sessionId, cols: session.cols, rows: session.rows };
+  });
+  ipcMain.handle('pty:write', (_event, sessionId, data) => {
+    ptySession.writeToPty(sessionId, data);
+    return true;
+  });
+  ipcMain.handle('pty:resize', (_event, sessionId, cols, rows) => {
+    ptySession.resizePty(sessionId, cols, rows);
+    return true;
+  });
+  ipcMain.handle('pty:stop', (_event, sessionId) => ptySession.stopPtySession(sessionId));
+
+  // File tree API
+  ipcMain.handle('filetree:get', (_event, workingDirectory) => {
+    return fileTree.getFileTree(workingDirectory);
+  });
+
+  // 监听 PTY 输出并转发给前端
+  ptySession.ptyEvents.on('data', (sessionId, data) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('pty:data', sessionId, data);
+    }
+  });
+
+  ptySession.ptyEvents.on('exit', (sessionId, exitCode, signal) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('pty:exit', sessionId, exitCode, signal);
+    }
   });
 }
 

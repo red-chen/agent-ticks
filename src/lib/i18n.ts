@@ -62,6 +62,8 @@ export type MessageKey =
   | 'agent.confirmDeleteMessage'
   | 'agent.scheduledOn'
   | 'agent.scheduledOff'
+  | 'agent.saveBeforeAddingTasks'
+  | 'agent.saveSuccess'
   // task panel
   | 'task.title'
   | 'task.scheduledTasks'
@@ -144,6 +146,8 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.confirmDeleteMessage': '确定要删除「{name}」吗？此操作无法撤销。',
     'agent.scheduledOn': '{count} 个定时任务',
     'agent.scheduledOff': '未开启定时',
+    'agent.saveBeforeAddingTasks': '请先保存代理，再添加任务。',
+    'agent.saveSuccess': '保存成功',
     'task.title': '代理任务',
     'task.scheduledTasks': '定时任务',
     'task.create': '新建定时任务',
@@ -222,6 +226,8 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.confirmDeleteMessage': 'Delete "{name}"? This action cannot be undone.',
     'agent.scheduledOn': '{count} scheduled',
     'agent.scheduledOff': 'No schedule',
+    'agent.saveBeforeAddingTasks': 'Save the agent before adding tasks.',
+    'agent.saveSuccess': 'Saved successfully',
     'task.title': 'Agent Task',
     'task.scheduledTasks': 'Scheduled Tasks',
     'task.create': 'New Scheduled Task',
