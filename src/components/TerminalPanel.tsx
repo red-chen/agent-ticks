@@ -12,9 +12,10 @@ interface TerminalPanelProps {
   onSessionClose: (sessionId: string) => void;
   onNewSession: () => void;
   onClose: () => void;
+  isFullScreen?: boolean;
 }
 
-export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSessionClose, onNewSession, onClose }: TerminalPanelProps) {
+export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSessionClose, onNewSession, onClose, isFullScreen = false }: TerminalPanelProps) {
   const [showFileTree, setShowFileTree] = useState(true);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [workingDirectory, setWorkingDirectory] = useState<string>('');
@@ -135,7 +136,7 @@ export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSe
     setTimeout(handleResize, 1000);
 
     return () => window.removeEventListener('resize', handleResize);
-  }, [activeSessionId, showFileTree]);
+  }, [activeSessionId, showFileTree, isFullScreen]);
 
   // 当文件树切换时重新 fit
   useEffect(() => {
@@ -235,9 +236,11 @@ export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSe
 
   return (
     <div className="chat-terminal-view">
-      <div className="chat-terminal-header">
-        <span className="chat-terminal-title">Agent Chat</span>
-      </div>
+      {!isFullScreen && (
+        <div className="chat-terminal-header">
+          <span className="chat-terminal-title">Agent Chat</span>
+        </div>
+      )}
 
       <div className="chat-terminal-tabbar">
         <div className="terminal-tabs">

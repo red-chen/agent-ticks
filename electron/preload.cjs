@@ -9,6 +9,12 @@ contextBridge.exposeInMainWorld('agentTicks', {
   deleteTask: (taskId) => ipcRenderer.invoke('task:delete', taskId),
   runTask: (taskId) => ipcRenderer.invoke('task:run', taskId),
   stopRun: (runId) => ipcRenderer.invoke('run:stop', runId),
+  isFullScreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+  onFullScreenChange: (callback) => {
+    const listener = (_event, isFullScreen) => callback(isFullScreen);
+    ipcRenderer.on('window:fullscreen-changed', listener);
+    return () => ipcRenderer.off('window:fullscreen-changed', listener);
+  },
   onStateChange: (callback) => {
     const listener = (_event, state) => callback(state);
     ipcRenderer.on('state:changed', listener);

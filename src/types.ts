@@ -78,6 +78,8 @@ export interface AgentTicksApi {
   deleteTask: (taskId: string) => Promise<boolean>;
   runTask: (taskId: string) => Promise<AgentRun | null>;
   stopRun: (runId: string) => Promise<boolean>;
+  isFullScreen: () => Promise<boolean>;
+  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => () => void;
   onStateChange: (callback: (state: AppState) => void) => () => void;
 
   // PTY Terminal APIs

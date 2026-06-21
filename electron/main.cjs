@@ -21,7 +21,7 @@ function createWindow() {
     minHeight: 620,
     title: APP_NAME,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 14, y: 14 },
+    trafficLightPosition: { x: 14, y: 7 },
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -35,6 +35,14 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  mainWindow.on('enter-full-screen', () => broadcastWindowState(mainWindow));
+  mainWindow.on('leave-full-screen', () => broadcastWindowState(mainWindow));
+}
+
+function broadcastWindowState(window) {
+  if (!window || window.isDestroyed()) return;
+  window.webContents.send('window:fullscreen-changed', window.isFullScreen());
 }
 
 function getState() {
@@ -144,6 +152,10 @@ function registerIpc() {
     const stopped = runner.stopRun(runId);
     broadcastState();
     return stopped;
+  });
+  ipcMain.handle('window:is-fullscreen', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    return window ? window.isFullScreen() : false;
   });
 
   // PTY Terminal session APIs

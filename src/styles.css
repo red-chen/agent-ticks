@@ -1483,7 +1483,8 @@ select:focus {
   padding: 0 12px 0 82px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
-  min-height: 40px;
+  height: 28px;
+  min-height: 28px;
   flex-shrink: 0;
   position: relative;
   z-index: 10;
@@ -1493,7 +1494,7 @@ select:focus {
 
 .chat-terminal-title {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1;
 }
@@ -1505,7 +1506,8 @@ select:focus {
   padding: 0 8px 0 4px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
-  min-height: 40px;
+  height: 32px;
+  min-height: 32px;
   gap: 8px;
   flex-shrink: 0;
   position: relative;
@@ -1529,7 +1531,7 @@ select:focus {
   border: none;
   color: var(--icon-color);
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1565,7 +1567,7 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 5px 10px;
   background: var(--bg-tertiary);
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
@@ -1588,7 +1590,7 @@ select:focus {
 }
 
 .terminal-tab-title {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -1626,7 +1628,7 @@ select:focus {
   border: none;
   color: var(--icon-color);
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;

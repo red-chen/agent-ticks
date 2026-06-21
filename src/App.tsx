@@ -194,6 +194,7 @@ export function App() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showChat, setShowChat] = useState<boolean>(false);
   const [showAgentSelector, setShowAgentSelector] = useState<boolean>(false);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
   const api = window.agentTicks;
 
@@ -203,6 +204,12 @@ export function App() {
     return api.onStateChange((next) => {
       setState(next);
     });
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) return;
+    api.isFullScreen().then(setIsFullScreen).catch(() => setIsFullScreen(false));
+    return api.onFullScreenChange(setIsFullScreen);
   }, [api]);
 
   function cycleTheme() {
@@ -842,7 +849,7 @@ export function App() {
         </div>
       )}
 
-      {showChat && <TerminalPanel sessions={chatSessions} activeSessionId={activeSessionId} onSessionChange={setActiveSessionId} onSessionClose={closeSession} onNewSession={() => setShowAgentSelector(true)} onClose={closeChat} />}
+      {showChat && <TerminalPanel sessions={chatSessions} activeSessionId={activeSessionId} onSessionChange={setActiveSessionId} onSessionClose={closeSession} onNewSession={() => setShowAgentSelector(true)} onClose={closeChat} isFullScreen={isFullScreen} />}
 
       {showAgentSelector && (
         <AgentSelector
