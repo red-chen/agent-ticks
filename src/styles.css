@@ -2169,6 +2169,12 @@ select:focus {
   min-height: 0;
 }
 
+.chat-terminal-body.resizing,
+body.is-terminal-pane-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 .chat-workspace-content {
   flex: 1;
   min-width: 0;
@@ -2186,36 +2192,71 @@ select:focus {
   display: flex;
   flex-direction: column;
   background: var(--terminal-bg);
-  border-right: 1px solid var(--border-color);
   overflow: hidden;
   position: relative;
+  flex: 0 0 auto;
+  min-width: 360px;
 }
 
 .chat-terminal-left.split {
-  width: 80%;
-}
-
-.chat-terminal-left.editor-split {
-  width: 50%;
+  width: auto;
 }
 
 .chat-terminal-left.full {
   width: 100%;
+  min-width: 0;
   border-right: none;
 }
 
+.terminal-filetree-resizer {
+  width: 8px;
+  flex: 0 0 8px;
+  cursor: col-resize;
+  position: relative;
+  background: var(--border-color);
+  z-index: 5;
+  -webkit-app-region: no-drag;
+  touch-action: none;
+  user-select: none;
+}
+
+.terminal-filetree-resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: var(--border-strong);
+}
+
+.terminal-filetree-resizer:hover,
+.terminal-filetree-resizer:active {
+  background: color-mix(in srgb, var(--text-accent) 16%, var(--border-color));
+}
+
+.terminal-filetree-resizer:hover::before,
+.terminal-filetree-resizer:active::before {
+  background: var(--text-accent);
+}
+
 .chat-terminal-right {
-  width: 20%;
+  flex: 0 0 auto;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   overflow: hidden;
 }
 
+.chat-terminal-right.file-tree-only {
+  border-left: 1px solid var(--border-color);
+}
+
 .chat-terminal-right.editor-mode {
-  width: 50%;
+  min-width: 520px;
   display: grid;
-  grid-template-columns: minmax(150px, 32%) minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 /* xterm.js container */
@@ -2236,6 +2277,14 @@ select:focus {
 .xterm-container .xterm-viewport {
   overflow-y: auto;
   background: var(--terminal-bg) !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.xterm-container .xterm-viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .xterm-container .xterm-screen {
@@ -2257,7 +2306,11 @@ select:focus {
 
 /* File tree */
 .file-tree-header {
-  padding: 12px 14px;
+  height: 39px;
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
   border-bottom: 1px solid var(--border-color);
   font-size: 11px;
   font-weight: 600;
@@ -2269,6 +2322,12 @@ select:focus {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.file-tree-header span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-tree {

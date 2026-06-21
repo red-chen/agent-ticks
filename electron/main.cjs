@@ -8,6 +8,7 @@ const fileTree = require('../lib/file-tree.cjs');
 const skillArchive = require('../lib/skill-archive.cjs');
 
 const APP_NAME = 'Agent Ticks';
+const APP_ICON = path.join(__dirname, '../build/icon.png');
 app.setName(APP_NAME);
 
 let mainWindow = null;
@@ -21,6 +22,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 620,
     title: APP_NAME,
+    icon: APP_ICON,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 14, y: 7 },
     webPreferences: {

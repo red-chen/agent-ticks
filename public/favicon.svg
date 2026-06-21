@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">A Logo</title>
+  <desc id="desc">A black and white logo with a rounded square outline and the letter A centered inside.</desc>
+  <rect
+    x="48"
+    y="48"
+    width="416"
+    height="416"
+    rx="72"
+    fill="#ffffff"
+    stroke="#000000"
+    stroke-width="32"
+  />
+  <defs>
+    <path
+      id="letter-a-face"
+      d="M154 386L238 132H288L374 386H322L306 334H220L204 386H154ZM234 290H292L263 198L234 290Z"
+      fill-rule="evenodd"
+    />
+  </defs>
+  <g aria-label="A">
+    <use href="#letter-a-face" transform="translate(26 26)" fill="#000000" opacity="0.2" />
+    <path
+      d="M238 132L264 158L180 412L154 386Z"
+      fill="#000000"
+      opacity="0.32"
+    />
+    <path
+      d="M288 132L314 158L400 412L374 386Z"
+      fill="#000000"
+      opacity="0.58"
+    />
+    <path
+      d="M154 386H204L230 412H180Z"
+      fill="#000000"
+      opacity="0.42"
+    />
+    <path
+      d="M322 386H374L400 412H348Z"
+      fill="#000000"
+      opacity="0.68"
+    />
+    <path
+      d="M234 290H292L318 316H260Z"
+      fill="#000000"
+      opacity="0.22"
+    />
+    <use href="#letter-a-face" fill="#000000" />
+    <path
+      d="M170 376L248 146H284"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.72"
+    />
+    <path
+      d="M228 320H300"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="8"
+      stroke-linecap="round"
+      opacity="0.72"
+    />
+    <path
+      d="M310 346L326 374"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="7"
+      stroke-linecap="round"
+      opacity="0.4"
+    />
+  </g>
+</svg>

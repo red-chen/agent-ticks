@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { X, PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, FileText, Folder, FolderOpen, Plus, LayoutDashboard, Save } from 'lucide-react';
 import { Terminal } from 'xterm';
 import type { ITheme } from 'xterm';
@@ -35,6 +35,11 @@ function terminalTheme(): ITheme {
   };
 }
 
+const MIN_TERMINAL_WIDTH = 360;
+const FIXED_EDITOR_FILE_TREE_WIDTH = 280;
+const MIN_FILE_EDITOR_WIDTH = 240;
+const MIN_EDITOR_PANEL_WIDTH = FIXED_EDITOR_FILE_TREE_WIDTH + MIN_FILE_EDITOR_WIDTH;
+
 export function TerminalPanel({
   sessions,
   activeSessionId,
@@ -59,15 +64,141 @@ export function TerminalPanel({
   const [isEditorLoading, setIsEditorLoading] = useState(false);
   const [isSavingFile, setIsSavingFile] = useState(false);
   const [confirmCloseSessionId, setConfirmCloseSessionId] = useState<string | null>(null);
+  const [rightPaneWidth, setRightPaneWidth] = useState<number | null>(null);
+  const [isPaneResizing, setIsPaneResizing] = useState(false);
 
   console.log('[TerminalPanel] Render - sessions:', sessions.length, sessions.map(s => ({ id: s.id, name: s.agentName })));
   console.log('[TerminalPanel] Render - activeSessionId:', activeSessionId);
 
   // 为每个会话维护独立的 terminal 实例
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const paneResizeCleanupRef = useRef<(() => void) | null>(null);
+  const terminalResizeFrameRef = useRef<number | null>(null);
   const terminalsRef = useRef<Map<string, { term: Terminal; fitAddon: FitAddon }>>(new Map());
   const terminalContainersRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
+  const hasOpenEditor = Boolean(selectedFile);
+  const rightPanelVisible = activeSessionId !== null && showFileTree;
+  const leftPaneMode = rightPanelVisible ? 'split' : 'full';
+  const hasFileChanges = selectedFile ? editorContent !== selectedFile.content : false;
+  const closeCandidate = sessions.find((session) => session.id === confirmCloseSessionId) || null;
+
+  const resizeActiveTerminal = useCallback(() => {
+    terminalResizeFrameRef.current = null;
+    if (!activeSessionId) return;
+
+    const terminal = terminalsRef.current.get(activeSessionId);
+    if (!terminal) return;
+
+    try {
+      terminal.fitAddon.fit();
+      const dims = terminal.fitAddon.proposeDimensions();
+      if (dims) {
+        window.agentTicks?.resizePty(activeSessionId, dims.cols, dims.rows).catch(() => {
+          // PTY may not be ready yet.
+        });
+      }
+    } catch (err) {
+      // Ignore fit errors from hidden or not-yet-mounted terminals.
+    }
+  }, [activeSessionId]);
+
+  const scheduleActiveTerminalResize = useCallback(() => {
+    if (terminalResizeFrameRef.current !== null) return;
+    terminalResizeFrameRef.current = window.requestAnimationFrame(resizeActiveTerminal);
+  }, [resizeActiveTerminal]);
+
+  const clampRightPaneWidth = useCallback((nextWidth: number) => {
+    const containerWidth = bodyRef.current?.clientWidth || window.innerWidth;
+    const minRightWidth = hasOpenEditor ? MIN_EDITOR_PANEL_WIDTH : FIXED_EDITOR_FILE_TREE_WIDTH;
+    const maxRightWidth = Math.max(minRightWidth, containerWidth - MIN_TERMINAL_WIDTH);
+
+    return Math.min(Math.max(nextWidth, minRightWidth), maxRightWidth);
+  }, [hasOpenEditor]);
+
+  const resolvedRightPaneWidth = useCallback(() => {
+    const containerWidth = bodyRef.current?.clientWidth || window.innerWidth;
+    const fallbackWidth = hasOpenEditor
+      ? Math.round(containerWidth * 0.5)
+      : Math.round(containerWidth * 0.22);
+
+    return clampRightPaneWidth(rightPaneWidth ?? fallbackWidth);
+  }, [clampRightPaneWidth, hasOpenEditor, rightPaneWidth]);
+
+  const beginPaneResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!bodyRef.current || !hasOpenEditor) return;
+
+    event.preventDefault();
+    paneResizeCleanupRef.current?.();
+    setIsPaneResizing(true);
+    document.body.classList.add('is-terminal-pane-resizing');
+
+    const handle = event.currentTarget;
+    const pointerId = event.pointerId;
+    if (handle.setPointerCapture) {
+      try {
+        handle.setPointerCapture(pointerId);
+      } catch (err) {
+        // The document listeners below still cover the drag.
+      }
+    }
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+
+      const rect = bodyRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const nextRightWidth = rect.right - moveEvent.clientX;
+      setRightPaneWidth(clampRightPaneWidth(nextRightWidth));
+      scheduleActiveTerminalResize();
+    };
+
+    const stopResize = (stopEvent?: PointerEvent) => {
+      if (stopEvent && stopEvent.pointerId !== pointerId) return;
+      paneResizeCleanupRef.current?.();
+      resizeActiveTerminal();
+    };
+
+    const cleanup = () => {
+      document.removeEventListener('pointermove', handleMove, true);
+      document.removeEventListener('pointerup', stopResize, true);
+      document.removeEventListener('pointercancel', stopResize, true);
+      window.removeEventListener('blur', cleanup);
+      if (handle.releasePointerCapture) {
+        try {
+          handle.releasePointerCapture(pointerId);
+        } catch (err) {
+          // Capture may already have been released.
+        }
+      }
+      document.body.classList.remove('is-terminal-pane-resizing');
+      setIsPaneResizing(false);
+      paneResizeCleanupRef.current = null;
+    };
+
+    paneResizeCleanupRef.current = cleanup;
+    document.addEventListener('pointermove', handleMove, true);
+    document.addEventListener('pointerup', stopResize, true);
+    document.addEventListener('pointercancel', stopResize, true);
+    window.addEventListener('blur', cleanup);
+  };
+
+  useEffect(() => {
+    return () => {
+      paneResizeCleanupRef.current?.();
+      if (terminalResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(terminalResizeFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasOpenEditor) {
+      paneResizeCleanupRef.current?.();
+    }
+  }, [hasOpenEditor]);
 
   // 为每个会话初始化 xterm.js
   useEffect(() => {
@@ -168,52 +299,32 @@ export function TerminalPanel({
   // 处理窗口大小变化
   useEffect(() => {
     const handleResize = () => {
-      if (!activeSessionId) return;
-
-      const terminal = terminalsRef.current.get(activeSessionId);
-      if (terminal) {
-        try {
-          terminal.fitAddon.fit();
-          const dims = terminal.fitAddon.proposeDimensions();
-          if (dims) {
-            window.agentTicks?.resizePty(activeSessionId, dims.cols, dims.rows).catch(() => {
-              // PTY 可能还未启动，忽略错误
-            });
-          }
-        } catch (err) {
-          // 忽略 fit 错误
-        }
-      }
+      setRightPaneWidth((currentWidth) => (
+        currentWidth === null ? currentWidth : clampRightPaneWidth(currentWidth)
+      ));
+      resizeActiveTerminal();
     };
 
     window.addEventListener('resize', handleResize);
     // 延迟初始 fit，等待 PTY 启动
-    setTimeout(handleResize, 1000);
+    const initialFitTimer = window.setTimeout(handleResize, 1000);
 
-    return () => window.removeEventListener('resize', handleResize);
-  }, [activeSessionId, showFileTree, isFullScreen]);
+    return () => {
+      window.clearTimeout(initialFitTimer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [clampRightPaneWidth, resizeActiveTerminal, showFileTree, isFullScreen]);
 
   // 当文件树切换时重新 fit
   useEffect(() => {
     if (!activeSessionId) return;
 
-    setTimeout(() => {
-      const terminal = terminalsRef.current.get(activeSessionId);
-      if (terminal) {
-        try {
-          terminal.fitAddon.fit();
-          const dims = terminal.fitAddon.proposeDimensions();
-          if (dims) {
-            window.agentTicks?.resizePty(activeSessionId, dims.cols, dims.rows).catch(() => {
-              // 忽略错误
-            });
-          }
-        } catch (err) {
-          // 忽略错误
-        }
-      }
+    const fitTimer = window.setTimeout(() => {
+      resizeActiveTerminal();
     }, 100);
-  }, [showFileTree, activeSessionId, selectedFile?.path]);
+
+    return () => window.clearTimeout(fitTimer);
+  }, [resizeActiveTerminal, showFileTree, activeSessionId, selectedFile?.path]);
 
   // 加载真实的文件树
   useEffect(() => {
@@ -224,7 +335,7 @@ export function TerminalPanel({
         const state = await window.agentTicks?.getState();
         const agent = state?.agents.find((a) => a.id === activeSession.agentId);
 
-        const dir = agent?.workingDirectory || '';
+        const dir = activeSession.workingDirectory || agent?.workingDirectory || '';
         if (!dir) {
           setWorkingDirectory('');
           setFileTree([]);
@@ -342,17 +453,16 @@ export function TerminalPanel({
 
   if (sessions.length === 0 && !workspaceContent) return null;
 
-  const hasOpenEditor = Boolean(selectedFile);
-  const rightPanelVisible = activeSessionId !== null && showFileTree;
-  const leftPaneMode = rightPanelVisible ? (hasOpenEditor ? 'editor-split' : 'split') : 'full';
-  const hasFileChanges = selectedFile ? editorContent !== selectedFile.content : false;
-  const closeCandidate = sessions.find((session) => session.id === confirmCloseSessionId) || null;
-
   const confirmCloseSession = () => {
     if (!confirmCloseSessionId) return;
     onSessionClose(confirmCloseSessionId);
     setConfirmCloseSessionId(null);
   };
+  const canResizeRightPane = rightPanelVisible && hasOpenEditor;
+  const currentRightPaneWidth = rightPanelVisible
+    ? (hasOpenEditor ? resolvedRightPaneWidth() : FIXED_EDITOR_FILE_TREE_WIDTH)
+    : 0;
+  const rightPaneDividerWidth = canResizeRightPane ? 8 : 0;
 
   return (
     <div className="chat-terminal-view">
@@ -428,7 +538,7 @@ export function TerminalPanel({
         </div>
       </div>
 
-      <div className="chat-terminal-body">
+      <div className={`chat-terminal-body ${isPaneResizing ? 'resizing' : ''}`} ref={bodyRef}>
         {activeSessionId === null && (
           <div className="chat-workspace-content">
             {workspaceContent}
@@ -437,7 +547,10 @@ export function TerminalPanel({
 
         <div
           className={`chat-terminal-left ${leftPaneMode}`}
-          style={{ display: activeSessionId === null ? 'none' : 'flex' }}
+          style={{
+            display: activeSessionId === null ? 'none' : 'flex',
+            width: rightPanelVisible ? `calc(100% - ${currentRightPaneWidth}px - ${rightPaneDividerWidth}px)` : undefined,
+          }}
         >
           {sessions.map((session) => (
             <div
@@ -452,7 +565,21 @@ export function TerminalPanel({
         </div>
 
         {rightPanelVisible && (
-          <div className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : ''}`}>
+          <>
+            {canResizeRightPane && (
+              <div
+                className="terminal-filetree-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize file editor"
+                title="Resize file editor"
+                onPointerDown={beginPaneResize}
+              />
+            )}
+            <div
+              className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : 'file-tree-only'}`}
+              style={{ width: `${currentRightPaneWidth}px` }}
+            >
             <div className="file-explorer-pane">
               <div className="file-tree-header">
                 <span>{workingDirectory || 'No working directory'}</span>
@@ -500,7 +627,8 @@ export function TerminalPanel({
                 />
               </div>
             )}
-          </div>
+            </div>
+          </>
         )}
       </div>
 

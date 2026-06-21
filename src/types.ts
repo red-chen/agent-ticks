@@ -71,6 +71,8 @@ export interface ChatSession {
   agentName: string;
   title: string;
   status: 'idle' | 'active';
+  workingDirectory?: string;
+  isolatedHome?: string;
   createdAt: string;
   updatedAt: string;
 }
