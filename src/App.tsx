@@ -9,7 +9,6 @@ import {
   Moon,
   Play,
   Plus,
-  Search,
   Settings,
   Save,
   Sun,
@@ -192,7 +191,7 @@ export function App() {
   // Chat state
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState<boolean>(false);
+  const [showChat, setShowChat] = useState<boolean>(true);
   const [showAgentSelector, setShowAgentSelector] = useState<boolean>(false);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
@@ -497,18 +496,15 @@ export function App() {
   }
 
   function closeChat() {
-    if (!api) {
-      setShowChat(false);
-      return;
+    if (api) {
+      // 终止所有 PTY 进程并删除会话，保留固定 Workspace Tab。
+      chatSessions.forEach((session) => {
+        api.stopSession(session.id).catch(() => {});
+        api.deleteSession(session.id).catch(() => {});
+      });
     }
-    // 终止所有 PTY 进程并删除会话
-    chatSessions.forEach((session) => {
-      api.stopSession(session.id).catch(() => {});
-      api.deleteSession(session.id).catch(() => {});
-    });
     setChatSessions([]);
     setActiveSessionId(null);
-    setShowChat(false);
   }
 
   function closeSession(sessionId: string) {
@@ -536,8 +532,7 @@ export function App() {
           console.log('[App] Switching to first remaining session:', remaining[0].id);
           setActiveSessionId(remaining[0].id);
         } else {
-          console.log('[App] No remaining sessions, closing chat panel');
-          setShowChat(false);
+          console.log('[App] No remaining sessions, switching to workspace tab');
           setActiveSessionId(null);
         }
       }
@@ -547,13 +542,17 @@ export function App() {
     console.log('[App] closeSession completed');
   }
 
-  const activeSession = chatSessions.find((s) => s.id === activeSessionId) || null;
-
   const deleteConfirmAgent = state.agents.find((agent) => agent.id === deleteConfirmAgentId) || null;
   const selectedAgentTasks = selectedAgentId
     ? state.tasks.filter((task) => task.agentId === selectedAgentId)
     : [];
   const formatTime = (value: string | null) => (value ? new Date(value).toLocaleString() : t('task.never'));
+
+  function openTaskFromOverview(task: AgentTask) {
+    const agent = state.agents.find((item) => item.id === task.agentId);
+    if (agent) openAgent(agent);
+    selectTask(task);
+  }
 
   function hasAgentChanged() {
     if (!agentDraft || !originalAgent) return false;
@@ -580,21 +579,8 @@ export function App() {
     });
   }
 
-  return (
+  const renderWorkspaceShell = () => (
     <div className="app-layout">
-      <header className="app-tabbar">
-        <div className="tabbar sidebar-open">
-          <button className="tabbar-search" title="Agent Ticks Home">
-            <Search className="tabbar-search-icon" size={14} />
-            <span className="tabbar-search-text">{state.home}</span>
-            <span className="tabbar-search-shortcut">local</span>
-          </button>
-          <div className="tabbar-right">
-            <span className="tabbar-version">{t('tabbar.version')}</span>
-          </div>
-        </div>
-      </header>
-
       <main className="app-body">
         <nav className="ribbon">
           <div className="ribbon-top">
@@ -721,61 +707,101 @@ export function App() {
               </div>
             </section>
           ) : (
-            <div className="agents-grid-wrapper">
-              <div className="agents-grid-header">
-                <h2>{t('sidebar.agents')}</h2>
-                <button className="new-agent-btn" onClick={createNewAgent}>
-                  <Plus size={15} />
-                  {t('sidebar.newAgent')}
-                </button>
+            <div className="workspace-overview">
+              <div className="agents-grid-wrapper">
+                <div className="agents-grid-header">
+                  <h2>{t('sidebar.agents')}</h2>
+                  <button className="new-agent-btn" onClick={createNewAgent}>
+                    <Plus size={15} />
+                    {t('sidebar.newAgent')}
+                  </button>
+                </div>
+                <div className="agents-grid">
+                {state.agents.map((agent) => (
+                  <article className="agent-card" key={agent.id} onClick={() => openAgent(agent)}>
+                    {(() => {
+                      const scheduledTaskCount = state.tasks.filter((task) => (
+                        task.agentId === agent.id && task.enabled && isScheduledTask(task.schedule)
+                      )).length;
+                      return (
+                        <>
+                          <div className="agent-card-head">
+                            <div className="agent-card-title">
+                              <span className="agent-card-icon"><Bot size={17} /></span>
+                              <h2>{agent.name}</h2>
+                            </div>
+                            <span className="provider-badge">{providerLabel(agent.kind)}</span>
+                          </div>
+                          <p>{agent.description || t('sidebar.noDescription')}</p>
+                          <div className="agent-card-footer">
+                            <span className={`scheduled-status ${scheduledTaskCount ? 'scheduled-on' : ''}`}>
+                              {scheduledTaskCount
+                                ? t('agent.scheduledOn', { count: scheduledTaskCount })
+                                : t('agent.scheduledOff')}
+                            </span>
+                            <div className="agent-card-footer-actions">
+                              <button
+                                className="agent-chat-btn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  startChat(agent.id);
+                                }}
+                              >
+                                <MessageCircle size={13} />
+                                {t('agent.chat')}
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </article>
+                ))}
+                {!state.agents.length && <p className="empty">{t('sidebar.noAgents')}</p>}
               </div>
-              <div className="agents-grid">
-              {state.agents.map((agent) => (
-                <article className="agent-card" key={agent.id} onClick={() => openAgent(agent)}>
-                  {(() => {
-                    const scheduledTaskCount = state.tasks.filter((task) => (
-                      task.agentId === agent.id && task.enabled && isScheduledTask(task.schedule)
-                    )).length;
+              </div>
+
+              <aside className="overview-tasks-panel">
+                <div className="detail-panel-head">
+                  <span><CalendarClock size={15} /> {t('task.scheduledTasks')}</span>
+                </div>
+                <div className="scheduled-task-list">
+                  {state.tasks.map((task) => {
+                    const agent = state.agents.find((item) => item.id === task.agentId);
                     return (
-                      <>
-                        <div className="agent-card-head">
-                          <div className="agent-card-title">
-                            <span className="agent-card-icon"><Bot size={17} /></span>
-                            <h2>{agent.name}</h2>
-                          </div>
-                          <span className="provider-badge">{providerLabel(agent.kind)}</span>
-                        </div>
-                        <p>{agent.description || t('sidebar.noDescription')}</p>
-                        <div className="agent-card-footer">
-                          <span className={`scheduled-status ${scheduledTaskCount ? 'scheduled-on' : ''}`}>
-                            {scheduledTaskCount
-                              ? t('agent.scheduledOn', { count: scheduledTaskCount })
-                              : t('agent.scheduledOff')}
+                      <article
+                        className="scheduled-task-item"
+                        key={task.id}
+                        onClick={() => openTaskFromOverview(task)}
+                      >
+                        <div className="scheduled-task-top">
+                          <strong>{task.name}</strong>
+                          <span className={`task-status ${task.enabled ? 'enabled' : ''}`}>
+                            {task.enabled ? t('task.enabledYes') : t('task.enabledNo')}
                           </span>
-                          <div className="agent-card-footer-actions">
-                            <button
-                              className="agent-chat-btn"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                startChat(agent.id);
-                              }}
-                            >
-                              <MessageCircle size={13} />
-                              {t('agent.chat')}
-                            </button>
-                          </div>
                         </div>
-                      </>
+                        <span>{agent?.name || task.agentId}</span>
+                        <span>{task.schedule}</span>
+                        <div className="scheduled-task-actions">
+                          <small>{task.concurrency === 'parallel' ? t('task.concurrencyParallel') : t('task.concurrencySkip')}</small>
+                          <button title={t('task.run')} onClick={(event) => { event.stopPropagation(); runTask(task.id); }}><Play size={13} /></button>
+                        </div>
+                      </article>
                     );
-                  })()}
-                </article>
-              ))}
-              {!state.agents.length && <p className="empty">{t('sidebar.noAgents')}</p>}
-            </div>
+                  })}
+                  {!state.tasks.length && <p className="empty">{t('sidebar.noTasks')}</p>}
+                </div>
+              </aside>
             </div>
           )}
         </section>
       </main>
+    </div>
+  );
+
+  return (
+    <>
+      {!showChat && renderWorkspaceShell()}
 
       {deleteConfirmAgent && (
         <div className="modal-backdrop">
@@ -849,7 +875,20 @@ export function App() {
         </div>
       )}
 
-      {showChat && <TerminalPanel sessions={chatSessions} activeSessionId={activeSessionId} onSessionChange={setActiveSessionId} onSessionClose={closeSession} onNewSession={() => setShowAgentSelector(true)} onClose={closeChat} isFullScreen={isFullScreen} />}
+      {showChat && (
+        <TerminalPanel
+          sessions={chatSessions}
+          activeSessionId={activeSessionId}
+          onWorkspaceSelect={() => setActiveSessionId(null)}
+          onSessionChange={setActiveSessionId}
+          onSessionClose={closeSession}
+          onNewSession={() => setShowAgentSelector(true)}
+          onClose={closeChat}
+          isFullScreen={isFullScreen}
+          workspaceTitle={locale === 'zh' ? '工作台' : 'Workspace'}
+          workspaceContent={renderWorkspaceShell()}
+        />
+      )}
 
       {showAgentSelector && (
         <AgentSelector
@@ -858,6 +897,6 @@ export function App() {
           onClose={() => setShowAgentSelector(false)}
         />
       )}
-    </div>
+    </>
   );
 }

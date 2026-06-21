@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, FileText, Folder, FolderOpen, Plus } from 'lucide-react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { X, PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, FileText, Folder, FolderOpen, Plus, LayoutDashboard } from 'lucide-react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
@@ -9,13 +9,27 @@ interface TerminalPanelProps {
   sessions: ChatSession[];
   activeSessionId: string | null;
   onSessionChange: (sessionId: string) => void;
+  onWorkspaceSelect: () => void;
   onSessionClose: (sessionId: string) => void;
   onNewSession: () => void;
   onClose: () => void;
   isFullScreen?: boolean;
+  workspaceTitle?: string;
+  workspaceContent?: ReactNode;
 }
 
-export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSessionClose, onNewSession, onClose, isFullScreen = false }: TerminalPanelProps) {
+export function TerminalPanel({
+  sessions,
+  activeSessionId,
+  onSessionChange,
+  onWorkspaceSelect,
+  onSessionClose,
+  onNewSession,
+  onClose,
+  isFullScreen = false,
+  workspaceTitle = 'Workspace',
+  workspaceContent,
+}: TerminalPanelProps) {
   const [showFileTree, setShowFileTree] = useState(true);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [workingDirectory, setWorkingDirectory] = useState<string>('');
@@ -232,18 +246,23 @@ export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSe
     ));
   };
 
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0 && !workspaceContent) return null;
 
   return (
     <div className="chat-terminal-view">
       {!isFullScreen && (
-        <div className="chat-terminal-header">
-          <span className="chat-terminal-title">Agent Chat</span>
-        </div>
+        <div className="chat-terminal-header" />
       )}
 
       <div className="chat-terminal-tabbar">
         <div className="terminal-tabs">
+          <div
+            className={`terminal-tab terminal-tab-workspace ${activeSessionId === null ? 'active' : ''}`}
+            onClick={onWorkspaceSelect}
+          >
+            <LayoutDashboard size={13} />
+            <span className="terminal-tab-title">{workspaceTitle}</span>
+          </div>
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -282,25 +301,38 @@ export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSe
           </button>
         </div>
         <div className="chat-terminal-actions">
-          <button
-            className="chat-terminal-btn"
-            onClick={() => setShowFileTree(!showFileTree)}
-            title={showFileTree ? 'Hide file tree' : 'Show file tree'}
-          >
-            {showFileTree ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-          </button>
-          <button className="chat-terminal-btn" onClick={(e) => {
-            console.log('[TerminalPanel] Close all sessions clicked');
-            e.stopPropagation();
-            onClose();
-          }} title="Close all sessions">
-            <X size={16} />
-          </button>
+          {activeSession && (
+            <button
+              className="chat-terminal-btn"
+              onClick={() => setShowFileTree(!showFileTree)}
+              title={showFileTree ? 'Hide file tree' : 'Show file tree'}
+            >
+              {showFileTree ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+            </button>
+          )}
+          {sessions.length > 0 && (
+            <button className="chat-terminal-btn" onClick={(e) => {
+              console.log('[TerminalPanel] Close all sessions clicked');
+              e.stopPropagation();
+              onClose();
+            }} title="Close all sessions">
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="chat-terminal-body">
-        <div className={`chat-terminal-left ${showFileTree ? 'split' : 'full'}`}>
+        {activeSessionId === null && (
+          <div className="chat-workspace-content">
+            {workspaceContent}
+          </div>
+        )}
+
+        <div
+          className={`chat-terminal-left ${showFileTree ? 'split' : 'full'}`}
+          style={{ display: activeSessionId === null ? 'none' : 'flex' }}
+        >
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -313,7 +345,7 @@ export function TerminalPanel({ sessions, activeSessionId, onSessionChange, onSe
           ))}
         </div>
 
-        {showFileTree && (
+        {activeSessionId !== null && showFileTree && (
           <div className="chat-terminal-right">
             <div className="file-tree-header">
               <span>{workingDirectory || 'Workspace'}</span>
