@@ -36,7 +36,7 @@ Agent Ticks 是一个本地优先的调度器，用于管理和调度 Claude Cod
 │   ├── main.cjs      # Electron 主进程（窗口管理、IPC）
 │   └── preload.cjs   # 安全的 API 暴露层
 ├── lib/              # 核心业务逻辑（Node.js）
-│   ├── store.cjs     # 数据持久化（agents.json、tasks.json、runs/）
+│   ├── store.cjs     # 数据持久化（config.json、Agent 目录、tasks.json、runs/）
 │   ├── runner.cjs    # 任务执行引擎（spawn 子进程）
 │   └── cron.cjs      # Cron 调度器
 ├── cli/              # 命令行工具
@@ -50,11 +50,24 @@ Agent Ticks 是一个本地优先的调度器，用于管理和调度 Claude Cod
 
 ```
 ~/.agent-ticks/
-├── agents.json       # Agent 配置列表
+├── config.json       # 应用设置，包含 Agent 目录
 ├── tasks.json        # 任务配置列表
 ├── runs/             # 任务执行记录（每个 run 一个 JSON 文件）
 └── logs/             # 预留的日志目录
 ```
+
+Agent 从启动时或设置页选择的目录加载和保存：
+
+```
+.
+├── agent-1
+│   ├── mcp.json
+│   ├── skills
+│   └── system-prompts.md
+└── manifest.json
+```
+
+`manifest.json` 记录所有 Agent 元信息，每个 Agent 子目录保存自己的系统提示词、MCP 配置和 skills。
 
 可通过 `AGENT_TICKS_HOME` 环境变量覆盖默认路径。
 
@@ -66,11 +79,10 @@ Agent Ticks 是一个本地优先的调度器，用于管理和调度 Claude Cod
 - **name**: 显示名称
 - **description**: 功能描述
 - **systemPrompt**: 系统提示词
-- **skills**: 启用的技能列表（如 magic-explore, magic-code-review）
-- **mcps**: MCP 服务器列表（如 git, node_repl）
+- **skills**: 从 Agent 子目录 `skills/` 读取得到
+- **mcps**: 从 Agent 子目录 `mcp.json` 读取得到
 - **permissions**: 权限列表（如 workspace-write, read-only）
-- **command**: 执行命令模板（可使用环境变量，如 `codex exec "$AGENT_TICKS_PROMPT"`）
-- **workingDirectory**: 工作目录
+- **workingDirectory**: 工作目录，保存在应用数据目录
 
 ### AgentTask (src/types.ts)
 代表一个可调度的任务：
@@ -99,7 +111,7 @@ Agent Ticks 是一个本地优先的调度器，用于管理和调度 Claude Cod
 ### 任务执行 (lib/runner.cjs)
 
 任务执行时会：
-1. 根据 agent.command 构建 shell 命令
+1. 根据 Agent provider 推导 shell 命令
 2. 注入环境变量：
    - `AGENT_TICKS_PROMPT`: 任务提示词
    - `AGENT_TICKS_SYSTEM_PROMPT`: agent 系统提示词
@@ -125,6 +137,7 @@ Agent Ticks 是一个本地优先的调度器，用于管理和调度 Claude Cod
 主进程暴露的 API（通过 `window.agentTicks`）：
 - `getHome()`: 获取数据目录路径
 - `getState()`: 获取完整状态（agents, tasks, runs, running）
+- `setAgentDirectory(path)`: 设置 Agent 加载/保存目录
 - `saveAgent(agent)`: 保存或更新 agent
 - `deleteAgent(agentId)`: 删除 agent 及其所有任务
 - `saveTask(task)`: 保存或更新任务
@@ -159,7 +172,7 @@ npm run electron:preview  # 预览生产版本（不启动 Vite）
 ```bash
 npm run cli -- home                        # 显示数据目录
 npm run cli -- agents                      # 列出所有 agents
-npm run cli -- agent:add <name> <command>  # 添加 agent
+npm run cli -- agent:add <name>            # 添加 agent
 npm run cli -- tasks                       # 列出所有任务
 npm run cli -- task:add <agentId> <name> <schedule> <prompt>
 npm run cli -- task:run <taskId>          # 手动运行任务

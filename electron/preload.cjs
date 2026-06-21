@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('agentTicks', {
   getHome: () => ipcRenderer.invoke('home:get'),
   getState: () => ipcRenderer.invoke('state:get'),
+  setAgentDirectory: (agentDirectory) => ipcRenderer.invoke('config:set-agent-directory', agentDirectory),
   saveAgent: (agent) => ipcRenderer.invoke('agent:save', agent),
   uploadSkillZip: (agentId, archive) => ipcRenderer.invoke('agent:upload-skill-zip', agentId, archive),
   deleteAgent: (agentId) => ipcRenderer.invoke('agent:delete', agentId),

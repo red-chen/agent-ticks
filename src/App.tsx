@@ -27,9 +27,11 @@ import { nextLocale } from './lib/i18n';
 import type { ThemePreference } from './lib/theme';
 
 const THEME_ORDER: ThemePreference[] = ['light', 'dark', 'system'];
+type SystemPromptMode = Agent['systemPromptMode'];
 
 const demoState: AppState = {
   home: '~/.agent-ticks',
+  agentDirectory: '~/.agent-ticks/agents',
   agents: [
     {
       id: 'agent-codex-daily',
@@ -37,11 +39,11 @@ const demoState: AppState = {
       kind: 'codex',
       description: 'Daily repository health checks, issue triage, and small maintenance fixes.',
       systemPrompt: '# Role\n\nYou are a pragmatic coding agent running on a schedule.\n\n# Permissions\n\n- Read local workspace files\n- Write only inside the configured workspace\n',
+      systemPromptMode: 'append',
       fewShots: [],
       permissions: ['workspace-write'],
       skills: ['magic-explore', 'magic-code-review'],
       mcps: ['node_repl'],
-      command: 'codex exec "$AGENT_TICKS_PROMPT"',
       workingDirectory: '/Users/red/workspace/agent-ticks',
       createdAt: '2026-06-18T01:30:00.000Z',
       updatedAt: '2026-06-20T02:45:00.000Z',
@@ -52,11 +54,11 @@ const demoState: AppState = {
       kind: 'codex',
       description: 'Reviews visual density, responsive layout, empty states, and interaction polish.',
       systemPrompt: '# Role\n\nYou improve frontend implementation quality with careful visual checks.',
+      systemPromptMode: 'append',
       fewShots: [],
       permissions: ['workspace-write'],
       skills: ['browser:control-in-app-browser', 'swiftui-design-skill'],
       mcps: [],
-      command: 'codex exec "$AGENT_TICKS_PROMPT"',
       workingDirectory: '/Users/red/workspace/agent-ticks',
       createdAt: '2026-06-18T05:10:00.000Z',
       updatedAt: '2026-06-19T10:15:00.000Z',
@@ -67,11 +69,11 @@ const demoState: AppState = {
       kind: 'claude',
       description: 'Collects merged changes and drafts concise release notes for weekly builds.',
       systemPrompt: '# Role\n\nYou summarize completed product work for release notes.',
+      systemPromptMode: 'append',
       fewShots: [],
       permissions: ['read-only'],
       skills: ['magic-explore'],
       mcps: ['git'],
-      command: 'claude -p "$AGENT_TICKS_PROMPT"',
       workingDirectory: '/Users/red/workspace/agent-ticks',
       createdAt: '2026-06-17T08:00:00.000Z',
       updatedAt: '2026-06-19T08:30:00.000Z',
@@ -155,11 +157,11 @@ function emptyAgent(): Partial<Agent> {
     kind: 'codex',
     description: '',
     systemPrompt: '# Role\n\nYou are an AI coding agent running on a schedule.\n\n# Permissions\n\n- Read local workspace files\n- Write only inside the configured workspace',
+    systemPromptMode: 'append',
     fewShots: [],
     permissions: ['workspace-write'],
     skills: [],
     mcps: [],
-    command: 'codex exec "$AGENT_TICKS_PROMPT"',
     workingDirectory: '',
   };
 }
@@ -191,6 +193,8 @@ export function App() {
   const [originalAgent, setOriginalAgent] = useState<Partial<Agent> | null>(null);
   const [skillUploadStatus, setSkillUploadStatus] = useState<string>('');
   const [isUploadingSkill, setIsUploadingSkill] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [settingsStatus, setSettingsStatus] = useState<string>('');
   const skillUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // Chat state
@@ -230,6 +234,7 @@ export function App() {
   }
 
   function openAgent(agent: Agent) {
+    setShowSettings(false);
     setSelectedAgentId(agent.id);
     setAgentDraft({ ...agent });
     setOriginalAgent({ ...agent });
@@ -240,6 +245,11 @@ export function App() {
   }
 
   function createNewAgent() {
+    if (!state.agentDirectory) {
+      setShowSettings(true);
+      return;
+    }
+    setShowSettings(false);
     setSelectedAgentId('');
     const draft = emptyAgent();
     setAgentDraft(draft);
@@ -262,12 +272,16 @@ export function App() {
     setCreateTaskDraft(null);
   }
 
+  function openSettings() {
+    closeAgent();
+    setShowSettings(true);
+    setSettingsStatus('');
+  }
+
   async function saveAgent() {
     if (!agentDraft) return;
     const nextDraft = {
       ...agentDraft,
-      skills: splitLines(lines(agentDraft.skills)),
-      mcps: splitLines(lines(agentDraft.mcps)),
       permissions: splitLines(lines(agentDraft.permissions)),
     };
     if (api) {
@@ -287,11 +301,11 @@ export function App() {
           kind: nextDraft.kind || 'codex',
           description: nextDraft.description || '',
           systemPrompt: nextDraft.systemPrompt || '',
+          systemPromptMode: nextDraft.systemPromptMode || 'append',
           fewShots: nextDraft.fewShots || [],
           permissions: nextDraft.permissions || [],
-          skills: nextDraft.skills || [],
-          mcps: nextDraft.mcps || [],
-          command: nextDraft.command || 'codex exec "$AGENT_TICKS_PROMPT"',
+          skills: [],
+          mcps: [],
           workingDirectory: nextDraft.workingDirectory || '',
           createdAt: now,
           updatedAt: now,
@@ -479,6 +493,17 @@ export function App() {
     if (selected) setAgentDraft({ ...agentDraft, workingDirectory: selected });
   }
 
+  async function selectAgentDirectory() {
+    if (!api) return;
+    const selected = await api.selectDirectory(state.agentDirectory || state.home);
+    if (!selected) return;
+    await api.setAgentDirectory(selected);
+    closeAgent();
+    setShowSettings(true);
+    setSettingsStatus(t('settings.saved'));
+    setTimeout(() => setSettingsStatus(''), 2200);
+  }
+
   async function handleSkillZipUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
@@ -613,20 +638,16 @@ export function App() {
       kind: agentDraft.kind,
       description: agentDraft.description,
       systemPrompt: agentDraft.systemPrompt,
-      skills: splitLines(lines(agentDraft.skills)),
-      mcps: splitLines(lines(agentDraft.mcps)),
+      systemPromptMode: agentDraft.systemPromptMode || 'append',
       permissions: splitLines(lines(agentDraft.permissions)),
-      command: agentDraft.command,
       workingDirectory: agentDraft.workingDirectory,
     }) !== JSON.stringify({
       name: originalAgent.name,
       kind: originalAgent.kind,
       description: originalAgent.description,
       systemPrompt: originalAgent.systemPrompt,
-      skills: splitLines(lines(originalAgent.skills)),
-      mcps: splitLines(lines(originalAgent.mcps)),
+      systemPromptMode: originalAgent.systemPromptMode || 'append',
       permissions: splitLines(lines(originalAgent.permissions)),
-      command: originalAgent.command,
       workingDirectory: originalAgent.workingDirectory,
     });
   }
@@ -653,17 +674,76 @@ export function App() {
       >
         <ThemeIcon preference={preference} />
       </button>
-      <button className="terminal-global-btn" title={t('ribbon.settings')}>
+      <button className="terminal-global-btn" title={t('ribbon.settings')} onClick={openSettings}>
         <Settings size={15} />
       </button>
     </div>
+  );
+
+  const renderSettingsPage = () => (
+    <section className="settings-page">
+      <header className="settings-header">
+        <button className="agent-back-btn" onClick={() => setShowSettings(false)}>
+          <ArrowLeft size={15} />
+          {t('agent.back')}
+        </button>
+        <div>
+          <h1>{t('settings.title')}</h1>
+          <p>{t('settings.subtitle')}</p>
+        </div>
+      </header>
+
+      <div className="settings-layout">
+        <section className="settings-panel">
+          <div className="detail-panel-head">
+            <span><FolderOpen size={15} /> {t('settings.agentDirectory')}</span>
+          </div>
+          <div className="settings-panel-body">
+            <p>{t('settings.agentDirectoryHelp')}</p>
+            <div className="settings-path-row">
+              <div>
+                <span>{t('settings.agentDirectory')}</span>
+                <code>{state.agentDirectory || t('settings.agentDirectoryMissing')}</code>
+              </div>
+              <button type="button" onClick={selectAgentDirectory} disabled={!api}>
+                <FolderOpen size={15} />
+                {t('settings.chooseAgentDirectory')}
+              </button>
+            </div>
+            <div className="settings-path-grid">
+              <div>
+                <span>{t('settings.appData')}</span>
+                <code>{state.home}</code>
+              </div>
+              <div>
+                <span>{t('settings.configPath')}</span>
+                <code>{state.home}/config.json</code>
+              </div>
+            </div>
+            {settingsStatus && <div className="settings-status"><Check size={15} /> {settingsStatus}</div>}
+          </div>
+        </section>
+
+        <aside className="settings-format-panel">
+          <div className="detail-panel-head">
+            <span><Bot size={15} /> {t('settings.directoryFormat')}</span>
+          </div>
+          <pre>{`.
+├── agent-1
+│   ├── mcp.json
+│   ├── skills
+│   └── system-prompts.md
+└── manifest.json`}</pre>
+        </aside>
+      </div>
+    </section>
   );
 
   const renderWorkspaceShell = () => (
     <div className="app-layout">
       <main className="app-body">
         <section className="agents-page">
-          {agentDraft ? (
+          {showSettings ? renderSettingsPage() : agentDraft ? (
             <section className="agent-detail-page">
               <div className="agent-detail-header">
                 <button className="agent-back-btn" onClick={closeAgent}>
@@ -724,11 +804,14 @@ export function App() {
                         </button>
                       </div>
                     </label>
-                    <label>{t('agent.skills')}<textarea value={lines(agentDraft.skills)} onChange={(event) => setAgentDraft({ ...agentDraft, skills: splitLines(event.target.value) })} /></label>
+                    <div className="readonly-field">
+                      <span>{t('agent.skills')}</span>
+                      <code>{agentDraft.skills?.length ? agentDraft.skills.join(', ') : '-'}</code>
+                    </div>
                     <div className="skill-upload-panel">
                       <div>
                         <span>{t('agent.skillZip')}</span>
-                        <small>{currentAgentId ? t('agent.skillsPath', { home: state.home, agentId: currentAgentId }) : t('agent.unsavedAgentId')}</small>
+                        <small>{currentAgentId ? t('agent.skillsPath', { home: state.agentDirectory || state.home, agentId: currentAgentId }) : t('agent.unsavedAgentId')}</small>
                       </div>
                       <input
                         ref={skillUploadInputRef}
@@ -747,7 +830,28 @@ export function App() {
                       </button>
                       {skillUploadStatus && <p>{skillUploadStatus}</p>}
                     </div>
-                    <label className="wide prompt">{t('agent.systemPrompt')}<textarea value={agentDraft.systemPrompt || ''} onChange={(event) => setAgentDraft({ ...agentDraft, systemPrompt: event.target.value })} /></label>
+                    <div className="wide prompt prompt-field">
+                      <div className="prompt-field-head">
+                        <label htmlFor="agent-system-prompt">{t('agent.systemPrompt')}</label>
+                        <div className="segmented-control" role="group" aria-label={t('agent.systemPromptMode')}>
+                          {(['append', 'replace'] as SystemPromptMode[]).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              className={(agentDraft.systemPromptMode || 'append') === mode ? 'active' : ''}
+                              onClick={() => setAgentDraft({ ...agentDraft, systemPromptMode: mode })}
+                            >
+                              {mode === 'append' ? t('agent.systemPromptAppend') : t('agent.systemPromptReplace')}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <textarea
+                        id="agent-system-prompt"
+                        value={agentDraft.systemPrompt || ''}
+                        onChange={(event) => setAgentDraft({ ...agentDraft, systemPrompt: event.target.value })}
+                      />
+                    </div>
                   </div>
                 </section>
 
@@ -984,6 +1088,31 @@ export function App() {
         <div className="toast-notification">
           <Check size={16} />
           <span>{t('agent.saveSuccess')}</span>
+        </div>
+      )}
+
+      {!state.agentDirectory && (
+        <div className="modal-backdrop">
+          <section className="setup-modal">
+            <div className="modal-head">
+              <span><FolderOpen size={15} /> {t('settings.setupTitle')}</span>
+            </div>
+            <div className="setup-modal-body">
+              <p>{t('settings.setupBody')}</p>
+              <pre>{`.
+├── agent-1
+│   ├── mcp.json
+│   ├── skills
+│   └── system-prompts.md
+└── manifest.json`}</pre>
+            </div>
+            <div className="modal-actions">
+              <button className="primary" onClick={selectAgentDirectory} disabled={!api}>
+                <FolderOpen size={14} />
+                {t('settings.chooseAgentDirectory')}
+              </button>
+            </div>
+          </section>
         </div>
       )}
 

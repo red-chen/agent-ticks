@@ -13,7 +13,7 @@ function usage() {
 Usage:
   agent-ticks home
   agent-ticks agents
-  agent-ticks agent:add <name> [command]
+  agent-ticks agent:add <name>
   agent-ticks agent:delete <agentId>
   agent-ticks tasks
   agent-ticks task:add <agentId> <name> <schedule> <prompt>
@@ -35,9 +35,9 @@ async function main() {
   if (command === 'runs') return print(store.listRuns(50));
 
   if (command === 'agent:add') {
-    const [name, agentCommand = ''] = args;
+    const [name] = args;
     if (!name) throw new Error('agent:add requires <name>');
-    return print(store.upsertAgent({ name, command: agentCommand }));
+    return print(store.upsertAgent({ name }));
   }
 
   if (command === 'agent:delete') {

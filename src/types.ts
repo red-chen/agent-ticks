@@ -4,11 +4,11 @@ export interface Agent {
   kind: string;
   description: string;
   systemPrompt: string;
+  systemPromptMode: 'append' | 'replace';
   fewShots: string[];
   permissions: string[];
   skills: string[];
   mcps: string[];
-  command: string;
   workingDirectory: string;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +45,7 @@ export interface AgentRun {
 
 export interface AppState {
   home: string;
+  agentDirectory: string;
   agents: Agent[];
   tasks: AgentTask[];
   runs: AgentRun[];
@@ -84,6 +85,7 @@ export interface FileNode {
 export interface AgentTicksApi {
   getHome: () => Promise<string>;
   getState: () => Promise<AppState>;
+  setAgentDirectory: (agentDirectory: string) => Promise<{ agentDirectory: string }>;
   saveAgent: (agent: Partial<Agent>) => Promise<Agent>;
   uploadSkillZip: (agentId: string, archive: SkillZipUpload) => Promise<SkillZipUploadResult>;
   deleteAgent: (agentId: string) => Promise<boolean>;

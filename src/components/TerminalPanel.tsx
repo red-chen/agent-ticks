@@ -58,6 +58,7 @@ export function TerminalPanel({
   const [editorError, setEditorError] = useState('');
   const [isEditorLoading, setIsEditorLoading] = useState(false);
   const [isSavingFile, setIsSavingFile] = useState(false);
+  const [confirmCloseSessionId, setConfirmCloseSessionId] = useState<string | null>(null);
 
   console.log('[TerminalPanel] Render - sessions:', sessions.length, sessions.map(s => ({ id: s.id, name: s.agentName })));
   console.log('[TerminalPanel] Render - activeSessionId:', activeSessionId);
@@ -223,8 +224,7 @@ export function TerminalPanel({
         const state = await window.agentTicks?.getState();
         const agent = state?.agents.find((a) => a.id === activeSession.agentId);
 
-        // 如果没设置 workingDirectory，回退到 home 目录
-        const dir = agent?.workingDirectory || state?.home || '';
+        const dir = agent?.workingDirectory || '';
         if (!dir) {
           setWorkingDirectory('');
           setFileTree([]);
@@ -346,6 +346,13 @@ export function TerminalPanel({
   const rightPanelVisible = activeSessionId !== null && showFileTree;
   const leftPaneMode = rightPanelVisible ? (hasOpenEditor ? 'editor-split' : 'split') : 'full';
   const hasFileChanges = selectedFile ? editorContent !== selectedFile.content : false;
+  const closeCandidate = sessions.find((session) => session.id === confirmCloseSessionId) || null;
+
+  const confirmCloseSession = () => {
+    if (!confirmCloseSessionId) return;
+    onSessionClose(confirmCloseSessionId);
+    setConfirmCloseSessionId(null);
+  };
 
   return (
     <div className="chat-terminal-view">
@@ -375,12 +382,8 @@ export function TerminalPanel({
               <button
                 className="terminal-tab-close"
                 onClick={(e) => {
-                  console.log('[TerminalPanel] Close tab clicked for session:', session.id);
-                  console.log('[TerminalPanel] Event:', e);
                   e.stopPropagation();
-                  console.log('[TerminalPanel] Calling onSessionClose');
-                  onSessionClose(session.id);
-                  console.log('[TerminalPanel] onSessionClose called');
+                  setConfirmCloseSessionId(session.id);
                 }}
               >
                 <X size={12} />
@@ -452,7 +455,7 @@ export function TerminalPanel({
           <div className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : ''}`}>
             <div className="file-explorer-pane">
               <div className="file-tree-header">
-                <span>{workingDirectory || 'Workspace'}</span>
+                <span>{workingDirectory || 'No working directory'}</span>
               </div>
               <div className="file-tree">
                 {fileTree.length > 0 ? (
@@ -500,6 +503,27 @@ export function TerminalPanel({
           </div>
         )}
       </div>
+
+      {closeCandidate && (
+        <div className="modal-backdrop">
+          <section className="delete-confirm-modal">
+            <div className="modal-head">
+              <span><X size={15} /> Close session</span>
+              <button title="Cancel" onClick={() => setConfirmCloseSessionId(null)}><X size={15} /></button>
+            </div>
+            <div className="delete-confirm-body">
+              <p>Close the session for "{closeCandidate.agentName}"? The running terminal process will be stopped.</p>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setConfirmCloseSessionId(null)}>Cancel</button>
+              <button className="danger" onClick={confirmCloseSession}>
+                <X size={14} />
+                Close session
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

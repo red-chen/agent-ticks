@@ -24,6 +24,19 @@ export type MessageKey =
   | 'ribbon.theme.system'
   | 'ribbon.theme.systemEffectiveLight'
   | 'ribbon.theme.systemEffectiveDark'
+  // settings
+  | 'settings.title'
+  | 'settings.subtitle'
+  | 'settings.agentDirectory'
+  | 'settings.agentDirectoryHelp'
+  | 'settings.chooseAgentDirectory'
+  | 'settings.agentDirectoryMissing'
+  | 'settings.appData'
+  | 'settings.configPath'
+  | 'settings.directoryFormat'
+  | 'settings.saved'
+  | 'settings.setupTitle'
+  | 'settings.setupBody'
   // tabbar
   | 'tabbar.version'
   | 'tabbar.newAgent'
@@ -50,8 +63,6 @@ export type MessageKey =
   | 'agent.workingDirectory'
   | 'agent.workingDirectoryPlaceholder'
   | 'agent.selectDirectory'
-  | 'agent.command'
-  | 'agent.commandPlaceholder'
   | 'agent.skills'
   | 'agent.skillZip'
   | 'agent.skillsPath'
@@ -66,6 +77,9 @@ export type MessageKey =
   | 'agent.mcp'
   | 'agent.permissions'
   | 'agent.systemPrompt'
+  | 'agent.systemPromptMode'
+  | 'agent.systemPromptAppend'
+  | 'agent.systemPromptReplace'
   | 'agent.save'
   | 'agent.chat'
   | 'agent.back'
@@ -124,6 +138,18 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'ribbon.theme.system': '跟随系统',
     'ribbon.theme.systemEffectiveLight': '跟随系统（浅色）',
     'ribbon.theme.systemEffectiveDark': '跟随系统（深色）',
+    'settings.title': '设置',
+    'settings.subtitle': '管理 Agent Ticks 的本地数据位置。',
+    'settings.agentDirectory': 'Agent 目录',
+    'settings.agentDirectoryHelp': 'Agent Ticks 会从该目录读取 manifest.json，并把每个 Agent 的 system-prompts.md、mcp.json 与 skills 保存在各自子目录。',
+    'settings.chooseAgentDirectory': '选择 Agent 目录',
+    'settings.agentDirectoryMissing': '尚未选择 Agent 目录',
+    'settings.appData': '应用数据目录',
+    'settings.configPath': '配置文件',
+    'settings.directoryFormat': '目录格式',
+    'settings.saved': 'Agent 目录已保存',
+    'settings.setupTitle': '选择 Agent 目录',
+    'settings.setupBody': '启动前需要指定 Agent 存放位置。Agent Ticks 会在该目录中维护 manifest.json，并按 AgentId 创建子目录。',
     'tabbar.version': 'Agent Ticks 0.1.0',
     'tabbar.newAgent': '新建代理',
     'sidebar.agents': '代理',
@@ -147,11 +173,9 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.workingDirectory': '工作目录',
     'agent.workingDirectoryPlaceholder': '/Users/red/workspace/project',
     'agent.selectDirectory': '选择目录',
-    'agent.command': '执行命令',
-    'agent.commandPlaceholder': 'codex exec "$AGENT_TICKS_PROMPT"',
     'agent.skills': '技能',
     'agent.skillZip': 'Skill Zip',
-    'agent.skillsPath': '{home}/agents/{agentId}/skills',
+    'agent.skillsPath': '{home}/{agentId}/skills',
     'agent.uploadSkillZip': '上传 Zip',
     'agent.skillUploading': '上传中',
     'agent.skillUploadRunning': '正在解压 Skill zip...',
@@ -163,6 +187,9 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.mcp': 'MCP',
     'agent.permissions': '权限',
     'agent.systemPrompt': '系统提示词（Markdown）',
+    'agent.systemPromptMode': '系统提示词模式',
+    'agent.systemPromptAppend': '追加',
+    'agent.systemPromptReplace': '替换',
     'agent.save': '保存代理',
     'agent.chat': 'Chat',
     'agent.back': '返回',
@@ -217,6 +244,18 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'ribbon.theme.system': 'Follow System',
     'ribbon.theme.systemEffectiveLight': 'Follow System (Light)',
     'ribbon.theme.systemEffectiveDark': 'Follow System (Dark)',
+    'settings.title': 'Settings',
+    'settings.subtitle': 'Manage where Agent Ticks keeps local data.',
+    'settings.agentDirectory': 'Agent Directory',
+    'settings.agentDirectoryHelp': 'Agent Ticks reads manifest.json from this directory and stores each agent system-prompts.md, mcp.json, and skills in its own subdirectory.',
+    'settings.chooseAgentDirectory': 'Choose Agent directory',
+    'settings.agentDirectoryMissing': 'No Agent directory selected',
+    'settings.appData': 'App data directory',
+    'settings.configPath': 'Config file',
+    'settings.directoryFormat': 'Directory format',
+    'settings.saved': 'Agent directory saved',
+    'settings.setupTitle': 'Choose Agent directory',
+    'settings.setupBody': 'Choose where agents live before using the app. Agent Ticks will maintain manifest.json there and create one subdirectory per AgentId.',
     'tabbar.version': 'Agent Ticks 0.1.0',
     'tabbar.newAgent': 'New Agent',
     'sidebar.agents': 'Agents',
@@ -240,11 +279,9 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.workingDirectory': 'Working Directory',
     'agent.workingDirectoryPlaceholder': '/Users/red/workspace/project',
     'agent.selectDirectory': 'Select directory',
-    'agent.command': 'Command',
-    'agent.commandPlaceholder': 'codex exec "$AGENT_TICKS_PROMPT"',
     'agent.skills': 'Skills',
     'agent.skillZip': 'Skill Zip',
-    'agent.skillsPath': '{home}/agents/{agentId}/skills',
+    'agent.skillsPath': '{home}/{agentId}/skills',
     'agent.uploadSkillZip': 'Upload Zip',
     'agent.skillUploading': 'Uploading',
     'agent.skillUploadRunning': 'Extracting Skill zip...',
@@ -256,6 +293,9 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'agent.mcp': 'MCP',
     'agent.permissions': 'Permissions',
     'agent.systemPrompt': 'System Prompt Markdown',
+    'agent.systemPromptMode': 'System prompt mode',
+    'agent.systemPromptAppend': 'Append',
+    'agent.systemPromptReplace': 'Replace',
     'agent.save': 'Save agent',
     'agent.chat': 'Chat',
     'agent.back': 'Back',

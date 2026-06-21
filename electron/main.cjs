@@ -49,6 +49,7 @@ function broadcastWindowState(window) {
 function getState() {
   return {
     home: store.getHome(),
+    agentDirectory: store.getAgentDirectory(),
     agents: store.listAgents(),
     tasks: store.listTasks(),
     runs: store.listRuns(200),
@@ -109,6 +110,7 @@ function runTask(taskId, trigger) {
 }
 
 function tickScheduler() {
+  if (!store.getAgentDirectory()) return;
   const now = new Date();
   const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
   if (minuteKey === lastMinuteKey) return;
@@ -128,6 +130,11 @@ function tickScheduler() {
 function registerIpc() {
   ipcMain.handle('home:get', () => store.getHome());
   ipcMain.handle('state:get', () => getState());
+  ipcMain.handle('config:set-agent-directory', (_event, agentDirectory) => {
+    const saved = store.setAgentDirectory(agentDirectory);
+    broadcastState();
+    return saved;
+  });
   ipcMain.handle('agent:save', (_event, agent) => {
     const saved = store.upsertAgent(agent);
     broadcastState();
@@ -217,11 +224,35 @@ function registerIpc() {
   });
 }
 
+async function promptForAgentDirectoryIfNeeded() {
+  if (store.getAgentDirectory()) return;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose Agent directory',
+    message: 'Choose the directory where Agent Ticks will load and save agents.',
+    buttonLabel: 'Use this directory',
+    defaultPath: store.getHome(),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled) {
+    broadcastState();
+    return;
+  }
+  const selected = result.filePaths[0];
+  if (selected) {
+    store.setAgentDirectory(selected);
+    broadcastState();
+  }
+}
+
 app.whenReady().then(() => {
   store.ensureHome();
   registerIpc();
   createWindow();
   createTray();
+  promptForAgentDirectoryIfNeeded().catch((error) => {
+    console.error('[startup] failed to choose agent directory', error);
+    broadcastState();
+  });
   setInterval(tickScheduler, 10_000);
   tickScheduler();
 });

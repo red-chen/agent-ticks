@@ -2,12 +2,25 @@
 
 Agent Ticks is a local-first scheduler for Claude Code, Codex, and other agent CLIs.
 
-All app data is stored under `~/.agent-ticks/` by default:
+App data is stored under `~/.agent-ticks/` by default:
 
-- `agents.json`: agent profiles, system prompts, skills, MCP entries, permissions, and commands
+- `config.json`: app settings, including the selected Agent directory
 - `tasks.json`: task prompts, cron schedules, enabled state, and concurrency mode
 - `runs/`: task run records and captured output
 - `logs/`: reserved for runtime logs
+
+Agents are loaded from the directory selected at startup or in Settings:
+
+```text
+.
+├── agent-1
+│   ├── mcp.json
+│   ├── skills
+│   └── system-prompts.md
+└── manifest.json
+```
+
+`manifest.json` stores Agent metadata. Each Agent subdirectory stores the system prompt, MCP config, and skill files for that Agent.
 
 ## Development
 
@@ -22,7 +35,7 @@ npm run electron:dev
 ```bash
 npm run cli -- home
 npm run cli -- agents
-npm run cli -- agent:add "Codex Daily" 'codex exec "$AGENT_TICKS_PROMPT"'
+npm run cli -- agent:add "Codex Daily"
 npm run cli -- task:add <agentId> "Daily Check" "@daily" "Review the repo and summarize risks."
 npm run cli -- task:run <taskId>
 npm run cli -- runs
