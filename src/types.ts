@@ -51,6 +51,18 @@ export interface AppState {
   running: AgentRun[];
 }
 
+export interface SkillZipUpload {
+  name: string;
+  data: ArrayBuffer;
+}
+
+export interface SkillZipUploadResult {
+  agentId: string;
+  files: number;
+  path: string;
+  uploadedAt: string;
+}
+
 export interface ChatSession {
   id: string;
   agentId: string;
@@ -73,7 +85,9 @@ export interface AgentTicksApi {
   getHome: () => Promise<string>;
   getState: () => Promise<AppState>;
   saveAgent: (agent: Partial<Agent>) => Promise<Agent>;
+  uploadSkillZip: (agentId: string, archive: SkillZipUpload) => Promise<SkillZipUploadResult>;
   deleteAgent: (agentId: string) => Promise<boolean>;
+  selectDirectory: (defaultPath?: string) => Promise<string | null>;
   saveTask: (task: Partial<AgentTask>) => Promise<AgentTask>;
   deleteTask: (taskId: string) => Promise<boolean>;
   runTask: (taskId: string) => Promise<AgentRun | null>;

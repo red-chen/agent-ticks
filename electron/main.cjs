@@ -1,10 +1,11 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 const store = require('../lib/store.cjs');
 const runner = require('../lib/runner.cjs');
 const { shouldRun } = require('../lib/cron.cjs');
 const ptySession = require('../lib/pty-session.cjs');
 const fileTree = require('../lib/file-tree.cjs');
+const skillArchive = require('../lib/skill-archive.cjs');
 
 const APP_NAME = 'Agent Ticks';
 app.setName(APP_NAME);
@@ -132,10 +133,24 @@ function registerIpc() {
     broadcastState();
     return saved;
   });
+  ipcMain.handle('agent:upload-skill-zip', (_event, agentId, archive) => {
+    const result = skillArchive.uploadSkillZip(agentId, archive);
+    broadcastState();
+    return result;
+  });
   ipcMain.handle('agent:delete', (_event, agentId) => {
     store.deleteAgent(agentId);
     broadcastState();
     return true;
+  });
+  ipcMain.handle('dialog:select-directory', async (event, defaultPath) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(window, {
+      defaultPath: defaultPath || undefined,
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled) return null;
+    return result.filePaths[0] || null;
   });
   ipcMain.handle('task:save', (_event, task) => {
     const saved = store.upsertTask(task);

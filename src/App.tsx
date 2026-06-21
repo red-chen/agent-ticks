@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   ArrowLeft,
   Bot,
   CalendarClock,
   Check,
+  FolderOpen,
   Languages,
   MessageCircle,
   Moon,
@@ -14,6 +15,7 @@ import {
   Sun,
   SunMoon,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react';
 import type { Agent, AgentTask, AppState, ChatSession } from './types';
@@ -187,6 +189,9 @@ export function App() {
   const [deleteConfirmAgentId, setDeleteConfirmAgentId] = useState<string>('');
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
   const [originalAgent, setOriginalAgent] = useState<Partial<Agent> | null>(null);
+  const [skillUploadStatus, setSkillUploadStatus] = useState<string>('');
+  const [isUploadingSkill, setIsUploadingSkill] = useState<boolean>(false);
+  const skillUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // Chat state
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -228,6 +233,7 @@ export function App() {
     setSelectedAgentId(agent.id);
     setAgentDraft({ ...agent });
     setOriginalAgent({ ...agent });
+    setSkillUploadStatus('');
     setIsNewAgent(false);
     setSelectedTaskId('');
     setTaskDraft(null);
@@ -238,6 +244,7 @@ export function App() {
     const draft = emptyAgent();
     setAgentDraft(draft);
     setOriginalAgent(draft);
+    setSkillUploadStatus('');
     setIsNewAgent(true);
     setSelectedTaskId('');
     setTaskDraft(null);
@@ -248,6 +255,7 @@ export function App() {
     setSelectedAgentId('');
     setAgentDraft(null);
     setOriginalAgent(null);
+    setSkillUploadStatus('');
     setIsNewAgent(false);
     setSelectedTaskId('');
     setTaskDraft(null);
@@ -465,6 +473,49 @@ export function App() {
     }
   }
 
+  async function selectWorkingDirectory() {
+    if (!agentDraft || !api) return;
+    const selected = await api.selectDirectory(agentDraft.workingDirectory || state.home);
+    if (selected) setAgentDraft({ ...agentDraft, workingDirectory: selected });
+  }
+
+  async function handleSkillZipUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || !agentDraft) return;
+
+    const agentId = agentDraft.id || selectedAgentId;
+    if (!api) {
+      setSkillUploadStatus(t('agent.skillUploadRequiresApp'));
+      return;
+    }
+    if (!agentId || isNewAgent) {
+      setSkillUploadStatus(t('agent.skillUploadSaveFirst'));
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      setSkillUploadStatus(t('agent.skillUploadZipOnly'));
+      return;
+    }
+
+    setIsUploadingSkill(true);
+    setSkillUploadStatus(t('agent.skillUploadRunning'));
+    try {
+      const data = await file.arrayBuffer();
+      const result = await api.uploadSkillZip(agentId, { name: file.name, data });
+      setSkillUploadStatus(t('agent.skillUploadSuccess', {
+        count: result.files,
+        path: result.path,
+      }));
+    } catch (error) {
+      setSkillUploadStatus(t('agent.skillUploadFailed', {
+        message: (error as Error).message || String(error),
+      }));
+    } finally {
+      setIsUploadingSkill(false);
+    }
+  }
+
   async function startChat(agentId: string) {
     console.log('[App] startChat called with agentId:', agentId);
     if (!api) {
@@ -543,6 +594,7 @@ export function App() {
   }
 
   const deleteConfirmAgent = state.agents.find((agent) => agent.id === deleteConfirmAgentId) || null;
+  const currentAgentId = agentDraft?.id || selectedAgentId;
   const selectedAgentTasks = selectedAgentId
     ? state.tasks.filter((task) => task.agentId === selectedAgentId)
     : [];
@@ -654,8 +706,47 @@ export function App() {
                       <label><input type="radio" name="provider" value="codex" checked={(agentDraft.kind || '') === 'codex'} onChange={(event) => setAgentDraft({ ...agentDraft, kind: event.target.value })} />Codex</label>
                       <label><input type="radio" name="provider" value="claude" checked={(agentDraft.kind || '') === 'claude'} onChange={(event) => setAgentDraft({ ...agentDraft, kind: event.target.value })} />ClaudeCode</label>
                     </fieldset>
+                    <div className="readonly-field">
+                      <span>{t('agent.id')}</span>
+                      <code>{currentAgentId || t('agent.unsavedAgentId')}</code>
+                    </div>
                     <label className="wide">{t('agent.description')}<input value={agentDraft.description || ''} onChange={(event) => setAgentDraft({ ...agentDraft, description: event.target.value })} /></label>
+                    <label className="wide field-with-button">
+                      {t('agent.workingDirectory')}
+                      <div className="input-action-row">
+                        <input
+                          value={agentDraft.workingDirectory || ''}
+                          placeholder={t('agent.workingDirectoryPlaceholder')}
+                          onChange={(event) => setAgentDraft({ ...agentDraft, workingDirectory: event.target.value })}
+                        />
+                        <button type="button" title={t('agent.selectDirectory')} onClick={selectWorkingDirectory} disabled={!api}>
+                          <FolderOpen size={15} />
+                        </button>
+                      </div>
+                    </label>
                     <label>{t('agent.skills')}<textarea value={lines(agentDraft.skills)} onChange={(event) => setAgentDraft({ ...agentDraft, skills: splitLines(event.target.value) })} /></label>
+                    <div className="skill-upload-panel">
+                      <div>
+                        <span>{t('agent.skillZip')}</span>
+                        <small>{currentAgentId ? t('agent.skillsPath', { home: state.home, agentId: currentAgentId }) : t('agent.unsavedAgentId')}</small>
+                      </div>
+                      <input
+                        ref={skillUploadInputRef}
+                        type="file"
+                        accept=".zip,application/zip,application/x-zip-compressed"
+                        onChange={handleSkillZipUpload}
+                        hidden
+                      />
+                      <button
+                        type="button"
+                        onClick={() => skillUploadInputRef.current?.click()}
+                        disabled={!api || !currentAgentId || isNewAgent || isUploadingSkill}
+                      >
+                        <Upload size={15} />
+                        {isUploadingSkill ? t('agent.skillUploading') : t('agent.uploadSkillZip')}
+                      </button>
+                      {skillUploadStatus && <p>{skillUploadStatus}</p>}
+                    </div>
                     <label className="wide prompt">{t('agent.systemPrompt')}<textarea value={agentDraft.systemPrompt || ''} onChange={(event) => setAgentDraft({ ...agentDraft, systemPrompt: event.target.value })} /></label>
                   </div>
                 </section>

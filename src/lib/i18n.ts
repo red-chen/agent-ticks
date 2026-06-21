@@ -41,15 +41,28 @@ export type MessageKey =
   | 'sidebar.runningBadge'
   // agent panel
   | 'agent.profile'
+  | 'agent.id'
+  | 'agent.unsavedAgentId'
   | 'agent.name'
   | 'agent.kind'
   | 'agent.provider'
   | 'agent.description'
   | 'agent.workingDirectory'
   | 'agent.workingDirectoryPlaceholder'
+  | 'agent.selectDirectory'
   | 'agent.command'
   | 'agent.commandPlaceholder'
   | 'agent.skills'
+  | 'agent.skillZip'
+  | 'agent.skillsPath'
+  | 'agent.uploadSkillZip'
+  | 'agent.skillUploading'
+  | 'agent.skillUploadRunning'
+  | 'agent.skillUploadSuccess'
+  | 'agent.skillUploadFailed'
+  | 'agent.skillUploadSaveFirst'
+  | 'agent.skillUploadRequiresApp'
+  | 'agent.skillUploadZipOnly'
   | 'agent.mcp'
   | 'agent.permissions'
   | 'agent.systemPrompt'
@@ -125,15 +138,28 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'sidebar.mcpCount': '{count} MCP',
     'sidebar.runningBadge': '运行中',
     'agent.profile': '代理配置',
+    'agent.id': 'AgentId',
+    'agent.unsavedAgentId': '保存后生成',
     'agent.name': '名称',
     'agent.kind': '类型',
     'agent.provider': 'Provider',
     'agent.description': '描述',
     'agent.workingDirectory': '工作目录',
     'agent.workingDirectoryPlaceholder': '/Users/red/workspace/project',
+    'agent.selectDirectory': '选择目录',
     'agent.command': '执行命令',
     'agent.commandPlaceholder': 'codex exec "$AGENT_TICKS_PROMPT"',
     'agent.skills': '技能',
+    'agent.skillZip': 'Skill Zip',
+    'agent.skillsPath': '{home}/agents/{agentId}/skills',
+    'agent.uploadSkillZip': '上传 Zip',
+    'agent.skillUploading': '上传中',
+    'agent.skillUploadRunning': '正在解压 Skill zip...',
+    'agent.skillUploadSuccess': '已解压 {count} 个文件到 {path}',
+    'agent.skillUploadFailed': '上传失败：{message}',
+    'agent.skillUploadSaveFirst': '请先保存代理，再上传 Skill zip。',
+    'agent.skillUploadRequiresApp': '上传需要在 Electron 应用中使用。',
+    'agent.skillUploadZipOnly': '请选择 .zip 文件。',
     'agent.mcp': 'MCP',
     'agent.permissions': '权限',
     'agent.systemPrompt': '系统提示词（Markdown）',
@@ -205,15 +231,28 @@ export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
     'sidebar.mcpCount': '{count} MCP',
     'sidebar.runningBadge': 'Running',
     'agent.profile': 'Agent Profile',
+    'agent.id': 'AgentId',
+    'agent.unsavedAgentId': 'Generated after save',
     'agent.name': 'Name',
     'agent.kind': 'Kind',
     'agent.provider': 'Provider',
     'agent.description': 'Description',
     'agent.workingDirectory': 'Working Directory',
     'agent.workingDirectoryPlaceholder': '/Users/red/workspace/project',
+    'agent.selectDirectory': 'Select directory',
     'agent.command': 'Command',
     'agent.commandPlaceholder': 'codex exec "$AGENT_TICKS_PROMPT"',
     'agent.skills': 'Skills',
+    'agent.skillZip': 'Skill Zip',
+    'agent.skillsPath': '{home}/agents/{agentId}/skills',
+    'agent.uploadSkillZip': 'Upload Zip',
+    'agent.skillUploading': 'Uploading',
+    'agent.skillUploadRunning': 'Extracting Skill zip...',
+    'agent.skillUploadSuccess': 'Extracted {count} files to {path}',
+    'agent.skillUploadFailed': 'Upload failed: {message}',
+    'agent.skillUploadSaveFirst': 'Save the agent before uploading a Skill zip.',
+    'agent.skillUploadRequiresApp': 'Upload is available in the Electron app.',
+    'agent.skillUploadZipOnly': 'Choose a .zip file.',
     'agent.mcp': 'MCP',
     'agent.permissions': 'Permissions',
     'agent.systemPrompt': 'System Prompt Markdown',

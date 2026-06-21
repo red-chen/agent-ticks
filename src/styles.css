@@ -690,6 +690,106 @@ button:disabled {
   min-height: 320px;
 }
 
+.readonly-field,
+.skill-upload-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.readonly-field code {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.input-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 8px;
+}
+
+.input-action-row button {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--icon-color);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+}
+
+.input-action-row button:hover:not(:disabled) {
+  color: var(--icon-active);
+  background: var(--bg-hover);
+}
+
+.skill-upload-panel {
+  justify-content: space-between;
+  padding: 10px;
+  background: color-mix(in srgb, var(--bg-elevated) 76%, transparent);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.skill-upload-panel > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skill-upload-panel span {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.skill-upload-panel small,
+.skill-upload-panel p {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.skill-upload-panel button {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.skill-upload-panel button:hover:not(:disabled) {
+  color: white;
+  background: var(--bg-accent);
+  border-color: var(--bg-accent);
+}
+
 .provider-radio-group {
   min-width: 0;
   display: flex;
