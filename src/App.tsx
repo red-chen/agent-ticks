@@ -579,33 +579,37 @@ export function App() {
     });
   }
 
+  const enabledTaskCount = state.tasks.filter((task) => task.enabled).length;
+  const scheduledTaskCount = state.tasks.filter((task) => task.enabled && isScheduledTask(task.schedule)).length;
+  const activeAgentCount = state.agents.filter((agent) => state.tasks.some((task) => (
+    task.agentId === agent.id && task.enabled && isScheduledTask(task.schedule)
+  ))).length;
+
+  const tabbarActions = (
+    <div className="terminal-global-actions">
+      <button
+        className="terminal-global-btn"
+        title={locale === 'zh' ? t('ribbon.toggleLang.toEn') : t('ribbon.toggleLang.toZh')}
+        onClick={() => setLocale(nextLocale(locale))}
+      >
+        <Languages size={15} />
+      </button>
+      <button
+        className="terminal-global-btn"
+        title={themeTitle()}
+        onClick={cycleTheme}
+      >
+        <ThemeIcon preference={preference} />
+      </button>
+      <button className="terminal-global-btn" title={t('ribbon.settings')}>
+        <Settings size={15} />
+      </button>
+    </div>
+  );
+
   const renderWorkspaceShell = () => (
     <div className="app-layout">
       <main className="app-body">
-        <nav className="ribbon">
-          <div className="ribbon-top">
-            <button className="ribbon-icon active" title={t('ribbon.agents')}><Bot size={18} /></button>
-            <button className="ribbon-icon" title={t('ribbon.tasks')}><CalendarClock size={18} /></button>
-          </div>
-          <div className="ribbon-bottom">
-            <button
-              className="ribbon-icon"
-              title={locale === 'zh' ? t('ribbon.toggleLang.toEn') : t('ribbon.toggleLang.toZh')}
-              onClick={() => setLocale(nextLocale(locale))}
-            >
-              <Languages size={16} />
-            </button>
-            <button
-              className="ribbon-icon"
-              title={themeTitle()}
-              onClick={cycleTheme}
-            >
-              <ThemeIcon preference={preference} />
-            </button>
-            <button className="ribbon-icon" title={t('ribbon.settings')}><Settings size={18} /></button>
-          </div>
-        </nav>
-
         <section className="agents-page">
           {agentDraft ? (
             <section className="agent-detail-page">
@@ -709,6 +713,18 @@ export function App() {
           ) : (
             <div className="workspace-overview">
               <div className="agents-grid-wrapper">
+                <header className="workspace-command-bar">
+                  <div>
+                    <span className="workspace-kicker">Agent Ticks</span>
+                    <h1>{locale === 'zh' ? '调度控制台' : 'Scheduler console'}</h1>
+                  </div>
+                  <div className="workspace-stats" aria-label="Workspace summary">
+                    <span><strong>{state.agents.length}</strong>{locale === 'zh' ? '代理' : 'agents'}</span>
+                    <span><strong>{enabledTaskCount}</strong>{locale === 'zh' ? '启用任务' : 'enabled'}</span>
+                    <span><strong>{scheduledTaskCount}</strong>{locale === 'zh' ? '定时' : 'scheduled'}</span>
+                    <span><strong>{activeAgentCount}</strong>{locale === 'zh' ? '接入' : 'wired'}</span>
+                  </div>
+                </header>
                 <div className="agents-grid-header">
                   <h2>{t('sidebar.agents')}</h2>
                   <button className="new-agent-btn" onClick={createNewAgent}>
@@ -733,6 +749,11 @@ export function App() {
                             <span className="provider-badge">{providerLabel(agent.kind)}</span>
                           </div>
                           <p>{agent.description || t('sidebar.noDescription')}</p>
+                          <div className="agent-card-metrics">
+                            <span>{state.tasks.filter((task) => task.agentId === agent.id).length} {locale === 'zh' ? '任务' : 'tasks'}</span>
+                            <span>{agent.skills.length} {locale === 'zh' ? '技能' : 'skills'}</span>
+                            <span>{agent.permissions.length} {locale === 'zh' ? '权限' : 'permissions'}</span>
+                          </div>
                           <div className="agent-card-footer">
                             <span className={`scheduled-status ${scheduledTaskCount ? 'scheduled-on' : ''}`}>
                               {scheduledTaskCount
@@ -887,6 +908,7 @@ export function App() {
           isFullScreen={isFullScreen}
           workspaceTitle={locale === 'zh' ? '工作台' : 'Workspace'}
           workspaceContent={renderWorkspaceShell()}
+          tabbarActions={tabbarActions}
         />
       )}
 

@@ -16,6 +16,7 @@ interface TerminalPanelProps {
   isFullScreen?: boolean;
   workspaceTitle?: string;
   workspaceContent?: ReactNode;
+  tabbarActions?: ReactNode;
 }
 
 export function TerminalPanel({
@@ -29,6 +30,7 @@ export function TerminalPanel({
   isFullScreen = false,
   workspaceTitle = 'Workspace',
   workspaceContent,
+  tabbarActions,
 }: TerminalPanelProps) {
   const [showFileTree, setShowFileTree] = useState(true);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
@@ -301,6 +303,7 @@ export function TerminalPanel({
           </button>
         </div>
         <div className="chat-terminal-actions">
+          {tabbarActions}
           {activeSession && (
             <button
               className="chat-terminal-btn"
