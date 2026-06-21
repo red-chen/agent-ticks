@@ -147,6 +147,10 @@ function splitLines(value: string) {
   return value.split('\n').map((item) => item.trim()).filter(Boolean);
 }
 
+function stringList(value: string[] | undefined) {
+  return (value || []).map((item) => String(item).trim()).filter(Boolean);
+}
+
 function isScheduledTask(schedule: string) {
   return schedule.trim().toLowerCase() !== 'manual';
 }
@@ -532,6 +536,17 @@ export function App() {
         count: result.files,
         path: result.path,
       }));
+      setAgentDraft((current) => (
+        current && (current.id || selectedAgentId) === result.agentId
+          ? { ...current, skills: result.skills }
+          : current
+      ));
+      setState((current) => ({
+        ...current,
+        agents: current.agents.map((agent) => (
+          agent.id === result.agentId ? { ...agent, skills: result.skills } : agent
+        )),
+      }));
     } catch (error) {
       setSkillUploadStatus(t('agent.skillUploadFailed', {
         message: (error as Error).message || String(error),
@@ -640,6 +655,7 @@ export function App() {
       systemPrompt: agentDraft.systemPrompt,
       systemPromptMode: agentDraft.systemPromptMode || 'append',
       permissions: splitLines(lines(agentDraft.permissions)),
+      skills: stringList(agentDraft.skills),
       workingDirectory: agentDraft.workingDirectory,
     }) !== JSON.stringify({
       name: originalAgent.name,
@@ -648,6 +664,7 @@ export function App() {
       systemPrompt: originalAgent.systemPrompt,
       systemPromptMode: originalAgent.systemPromptMode || 'append',
       permissions: splitLines(lines(originalAgent.permissions)),
+      skills: stringList(originalAgent.skills),
       workingDirectory: originalAgent.workingDirectory,
     });
   }
@@ -806,7 +823,11 @@ export function App() {
                     </label>
                     <div className="readonly-field">
                       <span>{t('agent.skills')}</span>
-                      <code>{agentDraft.skills?.length ? agentDraft.skills.join(', ') : '-'}</code>
+                      <div className="skill-list" aria-label={t('agent.skills')}>
+                        {agentDraft.skills?.length ? agentDraft.skills.map((skill) => (
+                          <span key={skill}>{skill}</span>
+                        )) : <span className="empty-skill">-</span>}
+                      </div>
                     </div>
                     <div className="skill-upload-panel">
                       <div>

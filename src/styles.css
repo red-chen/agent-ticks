@@ -755,10 +755,9 @@ button:disabled {
   font-size: 12px;
 }
 
-.readonly-field code {
+.readonly-field code,
+.skill-list {
   min-height: 34px;
-  display: flex;
-  align-items: center;
   padding: 0 10px;
   overflow: hidden;
   color: var(--text-primary);
@@ -767,8 +766,33 @@ button:disabled {
   border-radius: 7px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
+}
+
+.readonly-field code {
+  display: flex;
+  align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.skill-list span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.skill-list .empty-skill {
+  color: var(--text-muted);
 }
 
 .input-action-row {

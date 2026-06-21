@@ -61,6 +61,7 @@ export interface SkillZipUploadResult {
   agentId: string;
   files: number;
   path: string;
+  skills: string[];
   uploadedAt: string;
 }
 
