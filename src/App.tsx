@@ -277,7 +277,6 @@ export function App() {
   }
 
   function openSettings() {
-    closeAgent();
     setShowSettings(true);
     setSettingsStatus('');
   }
@@ -502,7 +501,6 @@ export function App() {
     const selected = await api.selectDirectory(state.agentDirectory || state.home);
     if (!selected) return;
     await api.setAgentDirectory(selected);
-    closeAgent();
     setShowSettings(true);
     setSettingsStatus(t('settings.saved'));
     setTimeout(() => setSettingsStatus(''), 2200);
@@ -698,60 +696,70 @@ export function App() {
   );
 
   const renderSettingsPage = () => (
-    <section className="settings-page">
-      <header className="settings-header">
-        <button className="agent-back-btn" onClick={() => setShowSettings(false)}>
-          <ArrowLeft size={15} />
-          {t('agent.back')}
+    <section className="settings-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="settings-dialog-title">
+      <header className="settings-dialog-header">
+        <h2 id="settings-dialog-title">{t('settings.title')}</h2>
+        <button type="button" title={t('agent.cancel')} onClick={() => setShowSettings(false)}>
+          <X size={16} />
         </button>
-        <div>
-          <h1>{t('settings.title')}</h1>
-          <p>{t('settings.subtitle')}</p>
-        </div>
       </header>
 
-      <div className="settings-layout">
-        <section className="settings-panel">
-          <div className="detail-panel-head">
-            <span><FolderOpen size={15} /> {t('settings.agentDirectory')}</span>
-          </div>
-          <div className="settings-panel-body">
-            <p>{t('settings.agentDirectoryHelp')}</p>
-            <div className="settings-path-row">
-              <div>
-                <span>{t('settings.agentDirectory')}</span>
-                <code>{state.agentDirectory || t('settings.agentDirectoryMissing')}</code>
-              </div>
-              <button type="button" onClick={selectAgentDirectory} disabled={!api}>
-                <FolderOpen size={15} />
-                {t('settings.chooseAgentDirectory')}
-              </button>
+      <div className="settings-dialog-body">
+        <aside className="settings-dialog-nav" aria-label={t('settings.title')}>
+          <button type="button" className="active">
+            <FolderOpen size={16} />
+            <span>{t('settings.agentDirectory')}</span>
+          </button>
+        </aside>
+
+        <div className="settings-dialog-content">
+          <section className="settings-section">
+            <div className="settings-section-head">
+              <h3>{t('settings.agentDirectory')}</h3>
+              <p>{t('settings.agentDirectoryHelp')}</p>
             </div>
-            <div className="settings-path-grid">
-              <div>
-                <span>{t('settings.appData')}</span>
-                <code>{state.home}</code>
+
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <span>{t('settings.agentDirectory')}</span>
+                  <code>{state.agentDirectory || t('settings.agentDirectoryMissing')}</code>
+                </div>
+                <button type="button" onClick={selectAgentDirectory} disabled={!api}>
+                  <FolderOpen size={15} />
+                  {t('settings.chooseAgentDirectory')}
+                </button>
               </div>
-              <div>
-                <span>{t('settings.configPath')}</span>
-                <code>{state.home}/config.json</code>
+              <div className="settings-row compact">
+                <div>
+                  <span>{t('settings.appData')}</span>
+                  <code>{state.home}</code>
+                </div>
+              </div>
+              <div className="settings-row compact">
+                <div>
+                  <span>{t('settings.configPath')}</span>
+                  <code>{state.home}/config.json</code>
+                </div>
               </div>
             </div>
             {settingsStatus && <div className="settings-status"><Check size={15} /> {settingsStatus}</div>}
-          </div>
-        </section>
+          </section>
 
-        <aside className="settings-format-panel">
-          <div className="detail-panel-head">
-            <span><Bot size={15} /> {t('settings.directoryFormat')}</span>
-          </div>
-          <pre>{`.
+          <section className="settings-section">
+            <div className="settings-section-head">
+              <h3><Bot size={15} /> {t('settings.directoryFormat')}</h3>
+            </div>
+            <div className="settings-card settings-format-card">
+              <pre>{`.
 ├── agent-1
 │   ├── mcp.json
 │   ├── skills
 │   └── system-prompts.md
 └── manifest.json`}</pre>
-        </aside>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
   );
@@ -760,7 +768,7 @@ export function App() {
     <div className="app-layout">
       <main className="app-body">
         <section className="agents-page">
-          {showSettings ? renderSettingsPage() : agentDraft ? (
+          {agentDraft ? (
             <section className="agent-detail-page">
               <div className="agent-detail-header">
                 <button className="agent-back-btn" onClick={closeAgent}>
@@ -1112,7 +1120,7 @@ export function App() {
         </div>
       )}
 
-      {!state.agentDirectory && (
+      {!state.agentDirectory && !showSettings && (
         <div className="modal-backdrop">
           <section className="setup-modal">
             <div className="modal-head">
@@ -1151,6 +1159,14 @@ export function App() {
           workspaceContent={renderWorkspaceShell()}
           tabbarActions={tabbarActions}
         />
+      )}
+
+      {showSettings && (
+        <div className="settings-dialog-backdrop" onMouseDown={() => setShowSettings(false)}>
+          <div onMouseDown={(event) => event.stopPropagation()}>
+            {renderSettingsPage()}
+          </div>
+        </div>
       )}
 
       {showAgentSelector && (

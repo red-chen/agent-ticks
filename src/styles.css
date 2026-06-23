@@ -1093,124 +1093,186 @@ button:disabled {
 
 /* ── Settings ────────────────────────────────────────── */
 
-.settings-page {
-  min-height: 100%;
-  min-width: 0;
+.settings-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2800;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.settings-dialog-panel {
+  width: min(992px, 85vw);
+  height: min(752px, 85vh);
+  min-height: 420px;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-}
-
-.settings-header {
-  min-height: 76px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-  background: linear-gradient(180deg, var(--bg-elevated), color-mix(in srgb, var(--bg-primary) 84%, var(--bg-elevated)));
-}
-
-.settings-header h1 {
+  overflow: hidden;
   color: var(--text-primary);
-  font-size: 20px;
-  line-height: 1.15;
-  font-weight: 660;
+  background: var(--bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--border-color) 76%, transparent);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
 }
 
-.settings-header p {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
+.settings-dialog-header {
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px 0 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 56%, transparent);
 }
 
-.settings-layout {
+.settings-dialog-header h2 {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.settings-dialog-header button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--icon-color);
+  border-radius: 6px;
+}
+
+.settings-dialog-header button:hover {
+  color: var(--icon-active);
+  background: var(--bg-hover);
+}
+
+.settings-dialog-body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: 16px;
-  padding: 18px;
-  overflow: auto;
+  grid-template-columns: 164px minmax(0, 1fr);
 }
 
-.settings-panel,
-.settings-format-panel {
+.settings-dialog-nav {
+  min-height: 0;
+  padding: 12px 8px;
+  overflow: auto;
+  border-right: 1px solid color-mix(in srgb, var(--border-color) 56%, transparent);
+}
+
+.settings-dialog-nav button {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  color: var(--text-muted);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 560;
+  text-align: left;
+}
+
+.settings-dialog-nav button.active {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.settings-dialog-content {
   min-width: 0;
-  align-self: start;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 18px 24px 24px;
+  overflow: auto;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 80%, var(--bg-elevated)), var(--bg-primary));
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-section-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 640;
+}
+
+.settings-section-head p {
+  max-width: 680px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.settings-card {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
-  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
+  border-radius: 9px;
   background: var(--bg-elevated);
   box-shadow: var(--shadow-xs);
 }
 
-.settings-panel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-}
-
-.settings-panel-body > p {
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.settings-path-row {
+.settings-row {
+  min-height: 64px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
 }
 
-.settings-path-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.settings-row + .settings-row {
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 56%, transparent);
 }
 
-.settings-path-row > div,
-.settings-path-grid > div {
+.settings-row.compact {
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings-row > div {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.settings-path-row span,
-.settings-path-grid span {
+.settings-row span {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 560;
 }
 
-.settings-path-row code,
-.settings-path-grid code {
+.settings-row code {
   min-width: 0;
-  min-height: 34px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
   overflow: hidden;
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
-  border-radius: 5px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.settings-path-row button {
-  height: 34px;
+.settings-row button {
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1219,27 +1281,23 @@ button:disabled {
   color: #ffffff;
   background: var(--bg-accent);
   border: 1px solid color-mix(in srgb, var(--bg-accent) 86%, var(--border-color));
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 620;
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.16),
-    0 1px 2px color-mix(in srgb, #000 20%, transparent);
 }
 
-.settings-path-row button:hover:not(:disabled) {
+.settings-row button:hover:not(:disabled) {
   background: var(--bg-accent-strong);
   border-color: var(--bg-accent-strong);
 }
 
-.settings-format-panel pre,
+.settings-format-card pre,
 .setup-modal-body pre {
   margin: 0;
   padding: 16px;
   overflow: auto;
   color: var(--terminal-text);
   background: var(--terminal-bg);
-  border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.55;
@@ -2717,7 +2775,7 @@ body.is-terminal-pane-resizing {
 
 .new-agent-btn,
 .agent-detail-save,
-.settings-path-row button,
+.settings-row button,
 .modal-actions .primary,
 .modal-actions .danger,
 .toast-notification,
@@ -2743,7 +2801,7 @@ body.is-terminal-pane-resizing {
 
 :root[data-theme='dark'] .new-agent-btn,
 :root[data-theme='dark'] .agent-detail-save,
-:root[data-theme='dark'] .settings-path-row button,
+:root[data-theme='dark'] .settings-row button,
 :root[data-theme='dark'] .modal-actions .primary,
 :root[data-theme='dark'] .modal-actions .danger,
 :root[data-theme='dark'] .toast-notification,
