@@ -90,8 +90,7 @@ html, body, #root {
 body {
   min-width: 960px;
   min-height: 620px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 92%, #ffffff 8%) 0%, var(--bg-secondary) 100%);
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.5;
@@ -158,8 +157,7 @@ button:disabled {
   flex-direction: column;
   overflow: hidden;
   padding: 8px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 92%, #ffffff 8%) 0%, var(--bg-secondary) 100%);
+  background: var(--bg-primary);
 }
 
 /* ── App Body ────────────────────────────────────────── */
@@ -169,8 +167,8 @@ button:disabled {
   display: flex;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
+  border-radius: 12px;
   background: var(--bg-elevated);
   box-shadow: var(--shadow-xl);
 }
@@ -182,7 +180,7 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  background: transparent;
+  background: var(--bg-elevated);
 }
 
 .agents-grid-wrapper {
@@ -200,7 +198,7 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   overflow: hidden;
-  background: var(--bg-elevated);
+  background: transparent;
 }
 
 .overview-tasks-panel {
@@ -208,8 +206,8 @@ button:disabled {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-elevated);
-  border-left: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+  background: transparent;
+  border-left: 1px solid color-mix(in srgb, var(--border-color) 46%, transparent);
   overflow: hidden;
 }
 
@@ -219,8 +217,8 @@ button:disabled {
   align-items: end;
   gap: 24px;
   padding: 18px 22px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
-  background: var(--bg-elevated);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 42%, transparent);
+  background: transparent;
 }
 
 .workspace-kicker {
@@ -254,12 +252,11 @@ button:disabled {
   gap: 1px;
   padding: 7px 10px;
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--bg-primary) 76%, var(--bg-elevated));
-  border: 1px solid color-mix(in srgb, var(--border-color) 64%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 46%, transparent);
   border-radius: 5px;
   font-size: 11px;
   font-weight: 560;
-  box-shadow: var(--shadow-xs);
 }
 
 .workspace-stats strong {
@@ -274,8 +271,8 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
-  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 42%, transparent);
+  background: transparent;
 }
 
 .agents-grid-header h2 {
@@ -331,9 +328,9 @@ button:disabled {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 54%, transparent);
   border-radius: 5px;
-  background: var(--bg-elevated);
+  background: transparent;
   box-shadow: var(--shadow-xs);
   cursor: pointer;
   position: relative;
@@ -352,7 +349,7 @@ button:disabled {
 }
 
 .agent-card:hover {
-  background: var(--bg-elevated);
+  background: color-mix(in srgb, var(--bg-primary) 38%, transparent);
   border-color: color-mix(in srgb, var(--bg-accent) 42%, var(--border-color));
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
@@ -386,7 +383,7 @@ button:disabled {
   align-items: center;
   justify-content: center;
   color: var(--text-accent);
-  background: color-mix(in srgb, var(--bg-accent) 12%, var(--bg-primary));
+  background: color-mix(in srgb, var(--bg-accent) 9%, transparent);
   border: 1px solid color-mix(in srgb, var(--bg-accent) 20%, transparent);
   border-radius: 5px;
   line-height: 0;
@@ -459,8 +456,8 @@ button:disabled {
   padding: 0 8px;
   overflow: hidden;
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 64%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
   border-radius: 5px;
   font-size: 11px;
   font-weight: 520;
@@ -491,8 +488,8 @@ button:disabled {
   gap: 5px;
   padding: 0 8px;
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 64%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
   border-radius: 5px;
   font-size: 11px;
   font-weight: 560;
@@ -546,7 +543,7 @@ button:disabled {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .agent-detail-header {
@@ -555,8 +552,8 @@ button:disabled {
   align-items: center;
   gap: 14px;
   padding: 8px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-  background: linear-gradient(180deg, var(--bg-elevated), color-mix(in srgb, var(--bg-primary) 84%, var(--bg-elevated)));
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 42%, transparent);
+  background: transparent;
 }
 
 .agent-back-btn,
@@ -573,8 +570,8 @@ button:disabled {
   gap: 6px;
   padding: 0 12px;
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 64%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
   font-size: 12px;
   font-weight: 560;
 }
@@ -653,11 +650,11 @@ button:disabled {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-elevated);
+  background: transparent;
 }
 
 .agent-config-panel {
-  border-right: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--border-color) 46%, transparent);
 }
 
 .detail-panel-head {
@@ -668,9 +665,9 @@ button:disabled {
   justify-content: space-between;
   gap: 10px;
   padding: 0 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 42%, transparent);
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--bg-secondary) 74%, transparent);
+  background: transparent;
   font-size: 11.5px;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -787,8 +784,8 @@ button:disabled {
   padding: 0 10px;
   overflow: hidden;
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
   border-radius: 5px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
@@ -833,8 +830,8 @@ button:disabled {
   display: inline-grid;
   place-items: center;
   color: var(--icon-color);
-  background: color-mix(in srgb, var(--bg-primary) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
   border-radius: 5px;
 }
 
@@ -846,8 +843,8 @@ button:disabled {
 .skill-upload-panel {
   justify-content: space-between;
   padding: 8px;
-  background: var(--bg-elevated);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
   border-radius: 5px;
   box-shadow: var(--shadow-xs);
 }
@@ -883,8 +880,8 @@ button:disabled {
   gap: 6px;
   padding: 0 10px;
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-primary) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
   border-radius: 5px;
   font-size: 12px;
   font-weight: 560;
@@ -919,8 +916,8 @@ button:disabled {
   gap: 7px;
   padding: 0 9px;
   color: var(--text-primary);
-  background: var(--bg-elevated);
-  border: 1px solid color-mix(in srgb, var(--border-color) 66%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
   border-radius: 5px;
   font-size: 13px;
   font-weight: 400;
@@ -952,22 +949,22 @@ button:disabled {
   gap: 7px;
   margin-bottom: 8px;
   padding: 11px;
-  border: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
-  border-left: 2px solid color-mix(in srgb, var(--border-strong) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--border-strong) 62%, transparent);
   border-radius: 5px;
-  background: var(--bg-elevated);
+  background: transparent;
   box-shadow: var(--shadow-xs);
   cursor: pointer;
 }
 
 .scheduled-task-item:hover {
-  background: var(--bg-elevated);
+  background: color-mix(in srgb, var(--bg-primary) 34%, transparent);
   border-color: color-mix(in srgb, var(--bg-accent) 34%, var(--border-color));
   border-left-color: color-mix(in srgb, var(--bg-accent) 58%, var(--border-color));
 }
 
 .scheduled-task-item.active {
-  background: color-mix(in srgb, var(--bg-accent) 9%, var(--bg-elevated));
+  background: color-mix(in srgb, var(--bg-accent) 8%, transparent);
   border-color: color-mix(in srgb, var(--bg-accent) 34%, var(--border-color));
   border-left-color: var(--bg-accent);
 }
@@ -2306,7 +2303,7 @@ body.is-terminal-pane-resizing {
   min-height: 0;
   display: flex;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .chat-workspace-content .app-layout {
@@ -2317,8 +2314,8 @@ body.is-terminal-pane-resizing {
 }
 
 .chat-workspace-content .app-body {
-  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 52%, transparent);
+  border-radius: 12px;
   box-shadow: var(--shadow-sm);
 }
 
