@@ -39,6 +39,8 @@ const MIN_TERMINAL_WIDTH = 360;
 const FIXED_EDITOR_FILE_TREE_WIDTH = 280;
 const MIN_FILE_EDITOR_WIDTH = 240;
 const MIN_EDITOR_PANEL_WIDTH = FIXED_EDITOR_FILE_TREE_WIDTH + MIN_FILE_EDITOR_WIDTH;
+const TERMINAL_BODY_GAP = 8;
+const TERMINAL_RESIZER_WIDTH = 8;
 
 export function TerminalPanel({
   sessions,
@@ -112,7 +114,10 @@ export function TerminalPanel({
   const clampRightPaneWidth = useCallback((nextWidth: number) => {
     const containerWidth = bodyRef.current?.clientWidth || window.innerWidth;
     const minRightWidth = hasOpenEditor ? MIN_EDITOR_PANEL_WIDTH : FIXED_EDITOR_FILE_TREE_WIDTH;
-    const maxRightWidth = Math.max(minRightWidth, containerWidth - MIN_TERMINAL_WIDTH);
+    const rightPaneOverhead = hasOpenEditor
+      ? (TERMINAL_BODY_GAP * 2 + TERMINAL_RESIZER_WIDTH)
+      : TERMINAL_BODY_GAP;
+    const maxRightWidth = Math.max(minRightWidth, containerWidth - MIN_TERMINAL_WIDTH - rightPaneOverhead);
 
     return Math.min(Math.max(nextWidth, minRightWidth), maxRightWidth);
   }, [hasOpenEditor]);
@@ -212,7 +217,7 @@ export function TerminalPanel({
       const term = new Terminal({
         cursorBlink: true,
         fontSize: 13,
-        fontFamily: "'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace",
+        fontFamily: "'JetBrains Mono', 'IBM Plex Mono', 'Cascadia Code', 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         theme: terminalTheme(),
         scrollback: 10000,
       });
@@ -462,7 +467,6 @@ export function TerminalPanel({
   const currentRightPaneWidth = rightPanelVisible
     ? (hasOpenEditor ? resolvedRightPaneWidth() : FIXED_EDITOR_FILE_TREE_WIDTH)
     : 0;
-  const rightPaneDividerWidth = canResizeRightPane ? 8 : 0;
 
   return (
     <div className="chat-terminal-view">
@@ -473,163 +477,155 @@ export function TerminalPanel({
         </div>
       )}
 
-      <div className="chat-terminal-tabbar">
-        <div className="terminal-tabs">
-          <div
-            className={`terminal-tab terminal-tab-workspace ${activeSessionId === null ? 'active' : ''}`}
-            onClick={onWorkspaceSelect}
-          >
-            <LayoutDashboard size={13} />
-            <span className="terminal-tab-title">{workspaceTitle}</span>
-          </div>
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`terminal-tab ${session.id === activeSessionId ? 'active' : ''}`}
-              onClick={() => onSessionChange(session.id)}
-            >
-              <span className="terminal-tab-title">{session.agentName}</span>
-              <button
-                className="terminal-tab-close"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConfirmCloseSessionId(session.id);
-                }}
+      <div className="chat-terminal-shell">
+        <div className="chat-terminal-main-panel">
+          <div className="chat-terminal-tabbar">
+            <div className="terminal-tabs">
+              <div
+                className={`terminal-tab terminal-tab-workspace ${activeSessionId === null ? 'active' : ''}`}
+                onClick={onWorkspaceSelect}
               >
-                <X size={12} />
+                <LayoutDashboard size={13} />
+                <span className="terminal-tab-title">{workspaceTitle}</span>
+              </div>
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`terminal-tab ${session.id === activeSessionId ? 'active' : ''}`}
+                  onClick={() => onSessionChange(session.id)}
+                >
+                  <span className="terminal-tab-title">{session.agentName}</span>
+                  <button
+                    className="terminal-tab-close"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmCloseSessionId(session.id);
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                className="terminal-tab-new"
+                onClick={onNewSession}
+                title="New chat session"
+              >
+                <Plus size={12} />
               </button>
             </div>
-          ))}
-          <button
-            className="terminal-tab-new"
-            onClick={(e) => {
-              console.log('[TerminalPanel] New session button clicked');
-              console.log('[TerminalPanel] Event:', e);
-              e.stopPropagation();
-              console.log('[TerminalPanel] Calling onNewSession');
-              onNewSession();
-              console.log('[TerminalPanel] onNewSession called');
-            }}
-            title="New chat session"
-          >
-            <Plus size={12} />
-          </button>
-        </div>
-        <div className="chat-terminal-actions">
-          {tabbarActions}
-          {activeSession && (
-            <button
-              className="chat-terminal-btn"
-              onClick={() => setShowFileTree(!showFileTree)}
-              title={showFileTree ? 'Hide file tree' : 'Show file tree'}
-            >
-              {showFileTree ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-            </button>
-          )}
-          {sessions.length > 0 && (
-            <button className="chat-terminal-btn" onClick={(e) => {
-              console.log('[TerminalPanel] Close all sessions clicked');
-              e.stopPropagation();
-              onClose();
-            }} title="Close all sessions">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className={`chat-terminal-body ${isPaneResizing ? 'resizing' : ''}`} ref={bodyRef}>
-        {activeSessionId === null && (
-          <div className="chat-workspace-content">
-            {workspaceContent}
+            <div className="chat-terminal-actions">
+              {tabbarActions}
+              {activeSession && (
+                <button
+                  className="chat-terminal-btn"
+                  onClick={() => setShowFileTree(!showFileTree)}
+                  title={showFileTree ? 'Hide file tree' : 'Show file tree'}
+                >
+                  {showFileTree ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+                </button>
+              )}
+              {sessions.length > 0 && (
+                <button className="chat-terminal-btn" onClick={onClose} title="Close all sessions">
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
-        )}
 
-        <div
-          className={`chat-terminal-left ${leftPaneMode}`}
-          style={{
-            display: activeSessionId === null ? 'none' : 'flex',
-            width: rightPanelVisible ? `calc(100% - ${currentRightPaneWidth}px - ${rightPaneDividerWidth}px)` : undefined,
-          }}
-        >
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              ref={(el) => {
-                if (el) terminalContainersRef.current.set(session.id, el);
-              }}
-              className="xterm-container"
-              style={{ display: session.id === activeSessionId ? 'block' : 'none' }}
-            />
-          ))}
-        </div>
-
-        {rightPanelVisible && (
-          <>
-            {canResizeRightPane && (
-              <div
-                className="terminal-filetree-resizer"
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize file editor"
-                title="Resize file editor"
-                onPointerDown={beginPaneResize}
-              />
+          <div className={`chat-terminal-body ${isPaneResizing ? 'resizing' : ''}`} ref={bodyRef}>
+            {activeSessionId === null && (
+              <div className="chat-workspace-content">
+                {workspaceContent}
+              </div>
             )}
+
             <div
-              className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : 'file-tree-only'}`}
-              style={{ width: `${currentRightPaneWidth}px` }}
+              className={`chat-terminal-left ${leftPaneMode}`}
+              style={{
+                display: activeSessionId === null ? 'none' : 'flex',
+              }}
             >
-            <div className="file-explorer-pane">
-              <div className="file-tree-header">
-                <span>{workingDirectory || 'No working directory'}</span>
-              </div>
-              <div className="file-tree">
-                {fileTree.length > 0 ? (
-                  renderFileTree(fileTree)
-                ) : (
-                  <div className="file-tree-empty">No files to display</div>
-                )}
-                {isEditorLoading && <div className="file-tree-empty">Opening file...</div>}
-                {editorError && !selectedFile && <div className="file-tree-error">{editorError}</div>}
-              </div>
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  ref={(el) => {
+                    if (el) terminalContainersRef.current.set(session.id, el);
+                  }}
+                  className="xterm-container"
+                  style={{ display: session.id === activeSessionId ? 'block' : 'none' }}
+                />
+              ))}
             </div>
 
-            {selectedFile && (
-              <div className="file-editor-pane">
-                <div className="file-editor-header">
-                  <div className="file-editor-title">
-                    <FileText size={14} />
-                    <span>{selectedFile.name}</span>
-                    {hasFileChanges && <em>Unsaved</em>}
+            {rightPanelVisible && (
+              <>
+                {canResizeRightPane && (
+                  <div
+                    className="terminal-filetree-resizer"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize file editor"
+                    title="Resize file editor"
+                    onPointerDown={beginPaneResize}
+                  />
+                )}
+                <div
+                  className={`chat-terminal-right ${hasOpenEditor ? 'editor-mode' : 'file-tree-only'}`}
+                  style={{ width: `${currentRightPaneWidth}px` }}
+                >
+                <div className="file-explorer-pane">
+                  <div className="file-tree-header">
+                    <span>{workingDirectory || 'No working directory'}</span>
                   </div>
-                  <div className="file-editor-actions">
-                    <button
-                      className="file-editor-btn"
-                      onClick={saveFile}
-                      disabled={!hasFileChanges || isSavingFile}
-                      title="Save file (Command+S)"
-                    >
-                      <Save size={14} />
-                    </button>
-                    <button className="file-editor-btn" onClick={closeFile} title="Close file">
-                      <X size={14} />
-                    </button>
+                  <div className="file-tree">
+                    {fileTree.length > 0 ? (
+                      renderFileTree(fileTree)
+                    ) : (
+                      <div className="file-tree-empty">No files to display</div>
+                    )}
+                    {isEditorLoading && <div className="file-tree-empty">Opening file...</div>}
+                    {editorError && !selectedFile && <div className="file-tree-error">{editorError}</div>}
                   </div>
                 </div>
-                {editorError && <div className="file-editor-error">{editorError}</div>}
-                <textarea
-                  className="file-editor"
-                  value={editorContent}
-                  spellCheck={false}
-                  onKeyDown={handleEditorKeyDown}
-                  onChange={(event) => setEditorContent(event.target.value)}
-                />
-              </div>
+
+                {selectedFile && (
+                  <div className="file-editor-pane">
+                    <div className="file-editor-header">
+                      <div className="file-editor-title">
+                        <FileText size={14} />
+                        <span>{selectedFile.name}</span>
+                        {hasFileChanges && <em>Unsaved</em>}
+                      </div>
+                      <div className="file-editor-actions">
+                        <button
+                          className="file-editor-btn"
+                          onClick={saveFile}
+                          disabled={!hasFileChanges || isSavingFile}
+                          title="Save file (Command+S)"
+                        >
+                          <Save size={14} />
+                        </button>
+                        <button className="file-editor-btn" onClick={closeFile} title="Close file">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    {editorError && <div className="file-editor-error">{editorError}</div>}
+                    <textarea
+                      className="file-editor"
+                      value={editorContent}
+                      spellCheck={false}
+                      onKeyDown={handleEditorKeyDown}
+                      onChange={(event) => setEditorContent(event.target.value)}
+                    />
+                  </div>
+                )}
+                </div>
+              </>
             )}
-            </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
 
       {closeCandidate && (
